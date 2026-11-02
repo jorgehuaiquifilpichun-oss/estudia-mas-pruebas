@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Estudia+</title>
+<style>
+  :root {
+    --fondo: #ffffff;
+    --texto: #131c3d;
+    --texto-suave: #5f6b85;
+    --azul: #3b82f0;
+    --azul-pastel: #e3efff;
+    --verde: #2a9d76;
+    --verde-pastel: #def6ee;
+    --lila: #7367cf;
+    --lila-pastel: #ece9fb;
+    --lila-azulado-pastel: #e9eefc;
+    --fuente: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--fondo);
+    color: var(--texto);
+    font-family: var(--fuente);
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Formas de fondo */
+  .fondo { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .fondo span { position: absolute; display: block; }
+  .f1 { width: 220px; height: 200px; left: -70px; top: -50px; background: #dcebfb; border-radius: 40% 60% 70% 30% / 40% 40% 60% 60%; }
+  .f2 { width: 70px; height: 48px; left: 4%; top: 17%; background: #ebe8fa; border-radius: 50%; transform: rotate(-30deg); }
+  .f3 { width: 170px; height: 190px; right: -70px; top: 2%; background: #dff6f0; border-radius: 55% 45% 40% 60%; }
+  .f4 { width: 54px; height: 54px; right: 17%; top: 14%; background: #dff6f0; border-radius: 50%; }
+  .f5 { width: 120px; height: 90px; right: -40px; top: 19%; background: #dcebfb; border-radius: 60% 40% 50% 50%; }
+  .f6 { width: 220px; height: 150px; left: -60px; bottom: -40px; background: #dcebfb; border-radius: 60% 40% 0 0; }
+  .f7 { width: 260px; height: 130px; right: -60px; bottom: -40px; background: #e8e4fa; border-radius: 55% 45% 0 0; }
+
+  .pagina { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; padding: 22px 16px 32px; }
+
+  /* Encabezado */
+  .marca { text-align: center; padding: 6px 0 22px; }
+  .marca svg { width: 78px; height: auto; display: block; margin: 0 auto 4px; }
+  .marca h1 { margin: 0; font-size: clamp(2.1rem, 9vw, 2.9rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; }
+  .marca h1 .mas { color: var(--azul); }
+  .marca p { margin: 8px 0 0; color: var(--texto-suave); font-size: clamp(.95rem, 3.6vw, 1.1rem); }
+
+  /* Accesos */
+  .accesos { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .acceso {
+    border-radius: 26px;
+    padding: 16px 12px 14px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 8px 22px rgba(90, 110, 170, .10);
+  }
+  .acceso.azul { background: var(--azul-pastel); }
+  .acceso.verde { background: var(--verde-pastel); }
+  .acceso.lila1 { background: var(--lila-azulado-pastel); }
+  .acceso.lila2 { background: var(--lila-pastel); }
+  .acceso svg.icono { width: min(100%, 118px); height: 100px; margin-bottom: 6px; }
+  .acceso h2 { margin: 0 0 6px; font-size: clamp(1rem, 4.2vw, 1.3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+  .acceso p { margin: 0 0 14px; color: var(--texto-suave); font-size: clamp(.78rem, 3vw, .95rem); line-height: 1.35; flex: 1; }
+  .boton {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; min-height: 46px; padding: 0 10px;
+    border-radius: 16px; border: 0; color: #fff; text-decoration: none;
+    font: 700 clamp(.85rem, 3.4vw, 1rem)/1 var(--fuente);
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .boton svg { width: 20px; height: 20px; flex: none; }
+  .boton:hover { filter: brightness(1.06); }
+  .boton:active { transform: scale(.97); }
+  .boton:focus-visible, .volver:focus-visible { outline: 3px solid var(--texto); outline-offset: 3px; }
+  .b-azul { background: var(--azul); }
+  .b-verde { background: var(--verde); }
+  .b-lila1 { background: #7a74d3; }
+  .b-lila2 { background: #7b5ec4; }
+
+  /* Pantallas provisionales */
+  .pantalla { display: none; }
+  .pantalla.activa { display: block; }
+  .provisional { padding-top: 6px; }
+  .volver {
+    display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+    padding: 0 14px 0 10px; border-radius: 14px; background: var(--azul-pastel);
+    color: var(--texto); font: 700 .95rem/1 var(--fuente); text-decoration: none;
+  }
+  .volver svg { width: 18px; height: 18px; }
+  .tarjeta-prov { margin-top: 18px; border-radius: 26px; padding: 28px 20px; text-align: center; box-shadow: 0 8px 22px rgba(90, 110, 170, .10); }
+  .tarjeta-prov svg { width: 110px; height: 96px; margin-bottom: 8px; }
+  .tarjeta-prov h2 { margin: 0 0 12px; font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; }
+  .etiqueta { display: inline-block; padding: 6px 12px; border-radius: 999px; background: #fff; color: var(--texto); font-weight: 700; font-size: .85rem; }
+  .tarjeta-prov p { margin: 14px auto 0; max-width: 34ch; color: var(--texto-suave); line-height: 1.45; }
+
+
+  /* Portada fija; las pantallas internas mantienen desplazamiento. */
+  html:has(#inicio.activa), body:has(#inicio.activa) {height:100%;overflow:hidden;overscroll-behavior:none}
+  body:has(#inicio.activa) .pagina {height:100dvh;overflow:hidden;padding-top:max(8px,env(safe-area-inset-top,0px));padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+  #inicio.activa {height:100%;display:flex;flex-direction:column;min-height:0}
+  #inicio .marca {flex:0 0 auto;padding:0 0 clamp(4px,1.4vh,14px)}
+  #inicio .marca svg{width:clamp(40px,8vh,64px);margin-bottom:2px}
+  #inicio .marca h1{font-size:clamp(1.7rem,7vw,2.3rem)}
+  #inicio .marca p{margin-top:4px;font-size:clamp(.8rem,3.2vw,.95rem)}
+  #inicio .accesos {flex:1;min-height:0;gap:10px;grid-template-rows:repeat(2,minmax(0,1fr))}
+  #inicio .acceso {min-height:0;padding:clamp(5px,1.5vh,16px) 12px}
+  #inicio .acceso svg.icono {width:min(100%,150px);height:clamp(44px,14vh,120px);flex-shrink:1;min-height:0}
+  #inicio .acceso p {margin-bottom:clamp(3px,1vh,14px)}
+  #inicio .boton {min-height:clamp(34px,5.2vh,46px);flex-shrink:0}
+  @media(max-height:680px){#inicio .marca svg{width:52px}#inicio .marca h1{font-size:1.9rem}#inicio .marca p{margin-top:3px;font-size:.85rem}#inicio .accesos{gap:8px}#inicio .acceso h2{font-size:.95rem}#inicio .acceso p{font-size:.72rem;line-height:1.2}}
+  #inicio .enlace-acceso{flex:0 0 auto;margin-top:clamp(6px,1.4vh,12px);min-height:clamp(38px,5.6vh,46px);background:#fff;color:var(--azul);border:2px solid var(--azul)}
+  .acceso-formulario{max-width:420px;margin:18px auto 0;padding:26px 20px;background:var(--azul-pastel);border-radius:26px;box-shadow:0 8px 22px rgba(90,110,170,.10)}
+  .acceso-formulario h2{margin:0 0 10px;font-size:1.6rem;text-align:center}
+  .acceso-formulario p{color:var(--texto-suave);line-height:1.45;text-align:center}
+  .acceso-formulario label{display:block;margin:16px 0 6px;font-weight:700}
+  .acceso-formulario input{display:block;width:100%;min-height:46px;border:1px solid #a9b9d6;border-radius:12px;padding:10px 12px;font:inherit;background:#fff;color:var(--texto)}
+  .acceso-formulario .boton{margin-top:16px;cursor:pointer}
+  .acceso-formulario .boton.secundario{background:#fff;color:var(--texto);border:2px solid var(--azul)}
+  .acceso-formulario .aviso-acceso{font-size:.88rem}
+
+  @media (prefers-reduced-motion: reduce) {
+    .boton { transition: none; }
+  }
+  .acceso svg.icono, .tarjeta-prov svg { filter: drop-shadow(0 6px 8px rgba(80,100,180,.18)); }
+  h1[tabindex="-1"]:focus, h2[tabindex="-1"]:focus { outline: none; }
+
+  /* ===== Menú de actividades y «Preguntas a la app» ===== */
+  .menu-act{margin-top:18px;border-radius:26px;padding:20px 14px;background:var(--verde-pastel);box-shadow:0 8px 22px rgba(90,110,170,.10)}
+  .menu-act h2{margin:0 0 4px;font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;text-align:center}
+  .menu-act>p{margin:0 0 14px;text-align:center;color:var(--texto-suave)}
+  .menu-act ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  .act{display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 14px;border-radius:16px;background:#fff;color:var(--texto);text-decoration:none;font:700 1rem/1.2 var(--fuente);border:0;text-align:left}
+  .act small{display:block;margin-top:2px;font-weight:500;font-size:.8rem;color:var(--texto-suave)}
+  .act .nom{flex:1;min-width:0}
+  .act svg{width:22px;height:22px;flex:none;color:var(--verde)}
+  a.act:hover{filter:brightness(.98)}
+  a.act:focus-visible{outline:3px solid var(--texto);outline-offset:3px}
+  .act.destacada{background:var(--verde);color:#fff}
+  .act.destacada small,.act.destacada svg{color:#fff}
+  .act[aria-disabled="true"]{opacity:.62}
+  .act .pronto{flex:none;font-size:.72rem;font-weight:700;padding:4px 8px;border-radius:999px;background:var(--verde-pastel);color:var(--texto)}
+  .act.destacada .pronto{background:#fff}
+  .preg{margin-top:18px;border-radius:26px;padding:20px 16px;background:var(--lila-azulado-pastel);box-shadow:0 8px 22px rgba(90,110,170,.10)}
+  .preg h2{margin:0 0 6px;font-size:1.6rem;font-weight:800;letter-spacing:-0.02em;text-align:center}
+  .preg>p{margin:0 0 14px;text-align:center;color:var(--texto-suave);line-height:1.4}
+  .preg label{display:block;margin:0 0 6px;font-weight:700}
+  .preg textarea{display:block;width:100%;min-height:96px;resize:vertical;border:1px solid #a9b9d6;border-radius:12px;padding:10px 12px;font:inherit;background:#fff;color:var(--texto)}
+  .preg .contador{margin:4px 2px 0;font-size:.8rem;color:var(--texto-suave);text-align:right}
+  .preg .boton{margin-top:12px;cursor:pointer}
+  .preg .boton:disabled{opacity:.6;cursor:not-allowed}
+  .preg .estado-preg{min-height:1.4em;margin:10px 0 0;font-size:.92rem;color:var(--texto-suave);text-align:center}
+  .preg .estado-preg.error{color:#a12b2b;font-weight:600}
+  .conversacion{margin-top:12px;display:grid;gap:12px}
+  .par{background:#fff;border-radius:16px;padding:12px 14px;overflow-wrap:anywhere;word-break:break-word}
+  .par .q{margin:0 0 8px;font-weight:700;white-space:pre-wrap}
+  .par .a{margin:0;line-height:1.5;white-space:normal}
+  .par .a > :first-child{margin-top:0}
+  .par .a > :last-child{margin-bottom:0}
+  .par .a p{margin:.55em 0}
+  .par .a h1,.par .a h2,.par .a h3,.par .a h4{font-size:1.08em;line-height:1.35;margin:1em 0 .4em}
+  .par .a ul,.par .a ol{padding-left:1.5em;margin:.6em 0}
+  .par .a li{margin:.3em 0}
+  .par .a pre{overflow-x:auto;padding:10px;border-radius:10px;background:#f2f5fb}
+  .par .a code{overflow-wrap:anywhere}
+  .par .a .katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+  .par .a table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse}
+  .par .a th,.par .a td{border:1px solid #ccd5e6;padding:6px 8px}
+  .par .a.pensando{color:var(--texto-suave);font-style:italic}
+  textarea:focus-visible{outline:3px solid var(--texto);outline-offset:2px}
+  .archivos{margin-top:18px;border-radius:26px;padding:22px 16px;text-align:center;box-shadow:0 8px 22px rgba(90,110,170,.10)}
+  .archivos>svg{width:110px;height:96px;margin-bottom:8px;filter:drop-shadow(0 6px 8px rgba(80,100,180,.18))}
+  .archivos h2{margin:0 0 8px;font-size:1.6rem;font-weight:800;letter-spacing:-0.02em}
+  .archivos>p{margin:0 0 12px;color:var(--texto-suave);line-height:1.4}
+  .archivos label{display:block;margin:0 0 6px;font-weight:700;text-align:left}
+  .archivos input[type=file]{display:block;width:100%;padding:10px;border:1px solid #a9b9d6;border-radius:12px;background:#fff;font:inherit}
+  .archivos .boton{margin-top:12px;cursor:pointer}
+  .archivos .boton:disabled{opacity:.6;cursor:not-allowed}
+  .archivos .estado-arch{min-height:1.4em;margin:10px 0 0;font-size:.92rem;color:var(--texto-suave)}
+  .archivos .estado-arch.error{color:#a12b2b;font-weight:600}
+  .archivos .estado-arch.ok{color:#1f7a5a;font-weight:600}
+  .lista-arch{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px;text-align:left}
+  .lista-arch li{background:#fff;border-radius:16px;padding:12px 14px;overflow-wrap:anywhere}
+  .lista-arch .nom{font-weight:700;margin:0}
+  .lista-arch .meta{margin:2px 0 8px;font-size:.82rem;color:var(--texto-suave)}
+  .lista-arch .acc{display:flex;gap:8px}
+  .mini{flex:1;min-height:44px;border-radius:12px;border:2px solid var(--azul);background:#fff;color:var(--texto);font:700 .9rem/1 var(--fuente);cursor:pointer}
+  .mini.peligro{border-color:#a12b2b;color:#a12b2b}
+  .mini:disabled{opacity:.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<div class="fondo" aria-hidden="true">
+  <span class="f1"></span><span class="f2"></span><span class="f3"></span><span class="f4"></span>
+  <span class="f5"></span><span class="f6"></span><span class="f7"></span>
+</div>
+
+<!-- Íconos reutilizables -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" fill="currentColor"/></symbol>
+    <symbol id="i-libro" viewBox="0 0 24 24"><path d="M2 5.2c3-1.3 6.5-1.2 9.2.6v14c-2.7-1.8-6.2-1.9-9.2-.6zM22 5.2c-3-1.3-6.5-1.2-9.2.6v14c2.7-1.8 6.2-1.9 9.2-.6z" fill="currentColor"/></symbol>
+    <symbol id="i-barras" viewBox="0 0 24 24"><rect x="3" y="13" width="5" height="8" rx="1.3" fill="currentColor"/><rect x="9.5" y="8" width="5" height="13" rx="1.3" fill="currentColor"/><rect x="16" y="3" width="5" height="18" rx="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6A.6.6 0 0 1 4.8 19V16A2.5 2.5 0 0 1 4 14z" fill="currentColor"/></symbol>
+    <symbol id="i-atras" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  
+    <linearGradient id="g-azul" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ec0ff"/><stop offset="1" stop-color="#3f86ee"/></linearGradient>
+    <linearGradient id="g-azulc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f93f5"/><stop offset="1" stop-color="#3b7fe8"/></linearGradient>
+    <linearGradient id="g-verde" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#78cfae"/><stop offset="1" stop-color="#4fb391"/></linearGradient>
+    <linearGradient id="g-verdec" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#32ab82"/><stop offset="1" stop-color="#1f9370"/></linearGradient>
+    <linearGradient id="g-lila" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a99aee"/><stop offset="1" stop-color="#7a67cf"/></linearGradient>
+    <linearGradient id="g-b1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b4a6f4"/><stop offset="1" stop-color="#9988ec"/></linearGradient>
+    <linearGradient id="g-b2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bdaef3"/><stop offset="1" stop-color="#a898ee"/></linearGradient>
+    <linearGradient id="g-b3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a86e2"/><stop offset="1" stop-color="#7455c4"/></linearGradient>
+    <linearGradient id="g-hoja" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f2f4fb"/></linearGradient>
+
+    <symbol id="ic-subir" viewBox="0 0 270 240">
+      <rect x="37" y="29" width="171" height="166" rx="18" fill="url(#g-hoja)"/>
+      <path d="M170 29h20a18 18 0 0 1 18 18v26h-20a18 18 0 0 1-18-18z" fill="#9ec3fb"/>
+      <rect x="62" y="65" width="78" height="10" rx="5" fill="#b3c8f3"/>
+      <rect x="62" y="91" width="78" height="10" rx="5" fill="#b3c8f3"/>
+      <rect x="62" y="117" width="65" height="10" rx="5" fill="#b3c8f3"/>
+      <rect x="62" y="143" width="50" height="10" rx="5" fill="#b3c8f3"/>
+      <circle cx="185" cy="163" r="50" fill="url(#g-azulc)"/>
+      <path d="M185 141l-20 20a4 4 0 0 0 3 7h11v15a5 5 0 0 0 12 0v-15h11a4 4 0 0 0 3-7z" fill="#fff" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="ic-estudiar" viewBox="0 0 320 230">
+      <path d="M21 70a17 17 0 0 1 17-17h230a17 17 0 0 1 0 0v95a35 35 0 0 1-35 35H128l-10 6a20 20 0 0 1-12 0l-10-6H56a35 35 0 0 1-35-35z" fill="url(#g-verde)"/>
+      <path d="M38 40c0-6 5-10 11-9 33 0 70 6 94 16v130c-26-8-60-13-91-12-8 0-14-5-14-12z" fill="url(#g-hoja)"/>
+      <path d="M252 40c0-6-5-10-11-9-33 0-70 6-94 16v130c26-8 60-13 91-12 8 0 14-5 14-12z" fill="url(#g-hoja)"/>
+      <rect x="143" y="48" width="4" height="128" fill="#cfeee3"/>
+      <g stroke="#b9e3d3" stroke-width="12" stroke-linecap="round" fill="none">
+        <path d="M68 64c18-3 38 0 50 8M68 92c18-3 38 0 50 8M68 120c18-3 38 0 50 8"/>
+        <path d="M222 64c-18-3-38 0-50 8M222 92c-18-3-38 0-50 8M222 120c-18-3-38 0-50 8"/>
+      </g>
+      <circle cx="251" cy="161" r="46" fill="url(#g-verdec)"/>
+      <path d="M240 143v36c0 3 3 5 6 3l30-18c3-2 3-6 0-8l-30-18c-3-2-6 0-6 5z" fill="#fff" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+
+    <symbol id="ic-biblio" viewBox="0 0 280 220"><path d="M54.5 138H238a5 5 0 0 1 5 5V199a5 5 0 0 1-5 5H54.5a27.5 27.5 0 0 1-27.5-27.5V165.5a27.5 27.5 0 0 1 27.5-27.5z" fill="url(#g-b1)"/><rect x="128" y="146" width="115" height="50" rx="4" fill="url(#g-hoja)"/><path d="M65.5 80H237a5 5 0 0 1 5 5V141a5 5 0 0 1-5 5H65.5a27.5 27.5 0 0 1-27.5-27.5V107.5a27.5 27.5 0 0 1 27.5-27.5z" fill="url(#g-verde)"/><rect x="135" y="88" width="107" height="50" rx="4" fill="url(#g-hoja)"/><path d="M82.5 22H225a5 5 0 0 1 5 5V83a5 5 0 0 1-5 5H82.5a27.5 27.5 0 0 1-27.5-27.5V49.5a27.5 27.5 0 0 1 27.5-27.5z" fill="url(#g-azul)"/><rect x="128" y="30" width="102" height="50" rx="4" fill="url(#g-hoja)"/><path d="M162 104h26v48l-13-10-13 10z" fill="#3b82f0"/></symbol>
+
+    <symbol id="ic-progreso" viewBox="0 0 240 220">
+      <rect x="17" y="131" width="51" height="64" rx="14" fill="url(#g-b1)"/>
+      <rect x="86" y="108" width="51" height="87" rx="14" fill="url(#g-b2)"/>
+      <rect x="153" y="73" width="51" height="122" rx="14" fill="url(#g-b3)"/>
+      <path d="M42 107C85 102 135 82 169 42" fill="none" stroke="#7a5fc9" stroke-width="12" stroke-linecap="round"/>
+      <path d="M160 32l27-7-4 27z" fill="#7a5fc9" stroke="#7a5fc9" stroke-width="6" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main class="pagina">
+
+  <!-- ============ PORTADA ============ -->
+  <section class="pantalla activa" id="inicio" aria-labelledby="t-inicio">
+    <header class="marca">
+      <svg viewBox="0 0 120 100" role="img" aria-label="Logotipo de Estudia+: birrete">
+        <path d="M60 6 6 30l54 24 54-24z" fill="#4a8ef5"/>
+        <path d="M28 46v22c0 8 15 16 32 16s32-8 32-16V46L60 60z" fill="#2f6fdd"/>
+        <path d="M60 60 28 46 60 33z" fill="#2f6fdd" opacity=".0"/>
+        <path d="M104 36v30" stroke="#4a8ef5" stroke-width="5" stroke-linecap="round"/>
+        <rect x="100" y="62" width="9" height="18" rx="4.5" fill="#4a8ef5"/>
+      </svg>
+      <h1 id="t-inicio">Estudia<span class="mas">+</span></h1>
+      <p>Tu guía de estudio inteligente</p>
+    </header>
+
+    <div class="accesos">
+
+      <!-- 1. Subir archivo -->
+      <article class="acceso azul">
+        <svg class="icono" viewBox="0 0 270 240" aria-hidden="true"><use href="#ic-subir"/></svg>
+        <h2>Subir archivo</h2>
+        <p>Carga tu guía de estudio en PDF, Word o imagen y genera tu material.</p>
+        <a class="boton b-azul" href="#subir"><svg><use href="#i-subir"/></svg>Subir archivo</a>
+      </article>
+
+      <!-- 2. Comenzar a estudiar -->
+      <article class="acceso verde">
+        <svg class="icono" viewBox="0 0 320 230" aria-hidden="true"><use href="#ic-estudiar"/></svg>
+        <h2>Comenzar a estudiar</h2>
+        <p>Accede a resúmenes, preguntas, ejercicios y material personalizado.</p>
+        <a class="boton b-verde" href="#estudiar"><svg><use href="#i-play"/></svg>Comenzar</a>
+      </article>
+
+      <!-- 3. Biblioteca de libros -->
+      <article class="acceso lila1">
+        <svg class="icono" viewBox="0 0 280 220" aria-hidden="true"><use href="#ic-biblio"/></svg>
+        <h2>Biblioteca de libros</h2>
+        <p>Explora guías, libros y materiales de estudio.</p>
+        <a class="boton b-lila1" href="#biblioteca"><svg><use href="#i-libro"/></svg>Ver biblioteca</a>
+      </article>
+
+      <!-- 4. Mi progreso -->
+      <article class="acceso lila2">
+        <svg class="icono" viewBox="0 0 240 220" aria-hidden="true"><use href="#ic-progreso"/></svg>
+        <h2>Mi progreso</h2>
+        <p>Revisa tu historial, seguimiento y logros de estudio.</p>
+        <a class="boton b-lila2" href="#progreso"><svg><use href="#i-barras"/></svg>Ver progreso</a>
+      </article>
+
+    </div>
+    <a class="boton enlace-acceso" id="boton-acceso" href="#acceso">Iniciar sesión / Crear cuenta</a>
+  </section>
+
+  <!-- ============ PANTALLAS PROVISIONALES ============ -->
+  <section class="pantalla provisional" id="subir" aria-labelledby="t-subir">
+    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+    <div class="archivos" style="background:var(--azul-pastel)">
+      <svg viewBox="0 0 270 240" aria-hidden="true"><use href="#ic-subir"/></svg>
+      <h2 id="t-subir" tabindex="-1">Subir archivo</h2>
+      <p>PDF, Word (DOC, DOCX), JPG o PNG. Máximo 50 MB.</p>
+      <form id="form-subir" novalidate>
+        <label for="archivo-subir">Elige un archivo</label>
+        <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <button class="boton b-azul" type="submit" id="boton-subir"><svg><use href="#i-subir"/></svg><span id="texto-subir">Subir archivo</span></button>
+      </form>
+      <p class="estado-arch" id="estado-subida" role="status" aria-live="polite"></p>
+      <a class="volver" id="ir-biblioteca" href="#biblioteca" hidden>Ver mis guías</a>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="estudiar" aria-labelledby="t-estudiar">
+    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+    <div class="menu-act">
+      <h2 id="t-estudiar" tabindex="-1">Comenzar a estudiar</h2>
+      <p>Elige una actividad.</p>
+      <ul>
+        <li><span class="act destacada" aria-disabled="true"><span class="nom">Estudio rápido</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Resúmenes</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Preguntas</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Cuestionarios</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Tarjetas de memoria</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Evaluaciones</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Trípticos</span><span class="pronto">Próximamente</span></span></li>
+        <li><a class="act" href="#preguntas-app"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="nom">Preguntas a la app<small>Haz preguntas y resuelve tus dudas de estudio.</small></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="preguntas-app" aria-labelledby="t-preguntas-app">
+    <a class="volver" href="#estudiar"><svg><use href="#i-atras"/></svg>Actividades</a>
+    <div class="preg">
+      <h2 id="t-preguntas-app" tabindex="-1">Preguntas a la app</h2>
+      <p>Haz preguntas y resuelve tus dudas de estudio.</p>
+      <form id="form-preguntas" novalidate>
+        <label for="texto-pregunta">Tu pregunta</label>
+        <textarea id="texto-pregunta" rows="3" maxlength="4000" placeholder="Escribe aquí tu pregunta"></textarea>
+        <div class="contador" id="contador-pregunta" aria-hidden="true">0 / 4000</div>
+        <button class="boton b-lila2" type="submit" id="enviar-pregunta"><svg><use href="#i-chat"/></svg><span id="texto-enviar">Enviar pregunta</span></button>
+      </form>
+      <p class="estado-preg" id="estado-pregunta" role="status" aria-live="polite"></p>
+      <div class="conversacion" id="conversacion" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="biblioteca" aria-labelledby="t-biblioteca">
+    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+    <div class="archivos" style="background:var(--lila-azulado-pastel)">
+      <svg viewBox="0 0 280 220" aria-hidden="true"><use href="#ic-biblio"/></svg>
+      <h2 id="t-biblioteca" tabindex="-1">Biblioteca de libros</h2>
+      <p>Tus guías subidas. Solo tú puedes verlas.</p>
+      <p class="estado-arch" id="estado-biblioteca" role="status" aria-live="polite"></p>
+      <ul class="lista-arch" id="lista-archivos"></ul>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="progreso" aria-labelledby="t-progreso">
+    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+    <div class="tarjeta-prov" style="background:var(--lila-pastel)">
+      <svg viewBox="0 0 240 220" aria-hidden="true"><use href="#ic-progreso"/></svg>
+      <h2 id="t-progreso" tabindex="-1">Mi progreso</h2>
+      <span class="etiqueta">Pantalla provisional</span>
+      <p>Esta función todavía no está disponible. Se incorporará en una etapa posterior.</p>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="acceso" aria-labelledby="t-acceso">
+    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+    <div class="acceso-formulario">
+      <h2 id="t-acceso" tabindex="-1">Acceso a Estudia+</h2>
+      <p id="usuario-actual" hidden></p>
+      <button class="boton secundario" type="button" id="cerrar-sesion" hidden>Cerrar sesión</button>
+      <form id="formulario-acceso">
+        <label for="correo-acceso">Correo electrónico</label>
+        <input id="correo-acceso" type="email" autocomplete="email" required>
+        <label for="clave-acceso">Contraseña</label>
+        <input id="clave-acceso" type="password" autocomplete="current-password" minlength="6" required>
+        <button class="boton b-azul" type="submit" id="iniciar-sesion">Iniciar sesión</button>
+        <button class="boton secundario" type="button" id="crear-cuenta">Crear cuenta</button>
+        <button class="boton secundario" type="button" id="acceso-google">Continuar con Google</button>
+      </form>
+      <p class="aviso-acceso" id="mensaje-acceso" role="status" aria-live="polite">Ingresa tu correo y contraseña para continuar.</p>
+    </div>
+  </section>
+
+</main>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+  // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
+  (function () {
+    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'biblioteca', 'progreso', 'acceso'];
+    var titulos = {
+      inicio: 'Estudia+',
+      subir: 'Subir archivo · Estudia+',
+      estudiar: 'Comenzar a estudiar · Estudia+',
+      'preguntas-app': 'Preguntas a la app · Estudia+',
+      biblioteca: 'Biblioteca de libros · Estudia+',
+      progreso: 'Mi progreso · Estudia+',
+      acceso: 'Acceso · Estudia+'
+    };
+    var primera = true;
+
+    function mostrar() {
+      var id = location.hash.replace('#', '');
+      if (secciones.indexOf(id) === -1) id = 'inicio';
+      secciones.forEach(function (s) {
+        document.getElementById(s).classList.toggle('activa', s === id);
+      });
+      document.title = titulos[id];
+      window.scrollTo(0, 0);
+      if (!primera) {
+        var h = document.querySelector('#' + id + ' h1, #' + id + ' h2');
+        if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+      }
+      primera = false;
+    }
+
+
+    // La clave publicable es apta para el navegador; nunca utilizar una clave secreta.
+    var cliente = window.supabase ? window.supabase.createClient(
+      'https://vdmkzprdapqgrhblttbt.supabase.co',
+      'sb_publishable_lzv0wADLZzPggktsrRSf3A_CXA7_p1t'
+    ) : null;
+    var formulario = document.getElementById('formulario-acceso');
+    var mensaje = document.getElementById('mensaje-acceso');
+    var cerrar = document.getElementById('cerrar-sesion');
+    var usuario = document.getElementById('usuario-actual');
+    var iniciar = document.getElementById('iniciar-sesion');
+    var crear = document.getElementById('crear-cuenta');
+    function aviso(t) { mensaje.textContent = t; }
+    var sesionActual = null;
+    function estado(sesion) {
+      sesionActual = sesion || null;
+      archivosCambioSesion();
+      var correo = sesion && sesion.user && sesion.user.email;
+      formulario.hidden = !!correo;
+      cerrar.hidden = !correo;
+      usuario.hidden = !correo;
+      usuario.textContent = correo ? 'Sesión iniciada: ' + correo : '';
+      document.getElementById('boton-acceso').textContent = correo ? 'Mi cuenta' : 'Iniciar sesión / Crear cuenta';
+      if (correo) aviso('Sesión iniciada correctamente.');
+    }
+    async function autenticar(registro) {
+      if (!formulario.reportValidity()) return;
+      if (!cliente) { aviso('No se pudo cargar la conexión. Comprueba tu conexión a Internet.'); return; }
+      iniciar.disabled = crear.disabled = true;
+      aviso(registro ? 'Creando cuenta…' : 'Iniciando sesión…');
+      var email = document.getElementById('correo-acceso').value.trim();
+      var password = document.getElementById('clave-acceso').value;
+      try {
+        var resultado = registro
+          ? await cliente.auth.signUp({email:email,password:password,options:{emailRedirectTo:location.origin+location.pathname}})
+          : await cliente.auth.signInWithPassword({email:email,password:password});
+        if (resultado.error) throw resultado.error;
+        if (registro && !resultado.data.session) aviso('Revisa tu correo para confirmar la cuenta antes de iniciar sesión.');
+        else { estado(resultado.data.session); location.hash = '#inicio'; }
+      } catch (error) {
+        aviso(error.message || 'No se pudo completar la operación.');
+      } finally {
+        document.getElementById('clave-acceso').value = '';
+        iniciar.disabled = crear.disabled = false;
+      }
+    }
+    formulario.addEventListener('submit',function(e){e.preventDefault();autenticar(false)});
+    crear.addEventListener('click',function(){autenticar(true)});
+    cerrar.addEventListener('click',async function(){
+      if (!cliente) return;
+      var r = await cliente.auth.signOut();
+      if (r.error) aviso(r.error.message);
+      else {estado(null);aviso('Sesión cerrada.');}
+    });
+    if (cliente) {
+      cliente.auth.getSession().then(function(r){if (!r.error) estado(r.data.session)});
+      cliente.auth.onAuthStateChange(function(_evento,sesion){estado(sesion)});
+    } else aviso('No se pudo cargar Supabase. Comprueba tu conexión a Internet.');
+
+    // ===== Preguntas a la app (Edge Function "gemini-chat") =====
+    var MAX_PREGUNTA = 4000; // Mismo límite que valida la función gemini-chat (pregunta.length > 4000 → 400).
+    var pForm = document.getElementById('form-preguntas');
+    var pTexto = document.getElementById('texto-pregunta');
+    var pEnviar = document.getElementById('enviar-pregunta');
+    var pEtiqueta = document.getElementById('texto-enviar');
+    var pEstado = document.getElementById('estado-pregunta');
+    var pConv = document.getElementById('conversacion');
+    var pContador = document.getElementById('contador-pregunta');
+    var pOcupado = false;
+    var pSolicitud = 0; // identifica la solicitud vigente; al salir de la pantalla se invalida
+    function pActiva() { return document.getElementById('preguntas-app').classList.contains('activa'); }
+    function pMensaje(t, esError) { pEstado.textContent = t; pEstado.className = 'estado-preg' + (esError ? ' error' : ''); }
+    function pBloquear(b) { pOcupado = b; pEnviar.disabled = b; pEtiqueta.textContent = b ? 'Enviando…' : 'Enviar pregunta'; }
+    function pContar() { pContador.textContent = pTexto.value.length + ' / ' + MAX_PREGUNTA; }
+    pTexto.addEventListener('input', pContar);
+    pTexto.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); pForm.requestSubmit(); }
+    });
+
+    async function pTextoError(error) {
+      var nombre = error && error.name;
+      if (nombre === 'FunctionsHttpError' && error.context) {
+        var estadoHttp = error.context.status;
+        if (estadoHttp === 401 || estadoHttp === 403) return {sesion: true, texto: 'Tu sesión no es válida o expiró. Inicia sesión de nuevo.'};
+        if (estadoHttp === 429) return {texto: 'Hay demasiadas solicitudes. Espera un momento e inténtalo otra vez.'};
+        if (estadoHttp === 400 || estadoHttp === 413) return {texto: 'No se pudo procesar la pregunta. Revisa su texto e inténtalo de nuevo.'};
+        if (estadoHttp === 502) return {texto: 'No se pudo generar la respuesta en este momento. Inténtalo de nuevo en unos instantes.'};
+        return {texto: 'El servicio no pudo responder en este momento. Inténtalo de nuevo.'};
+      }
+      if (nombre === 'FunctionsFetchError') return {texto: 'No hay conexión con el servicio. Revisa tu Internet e inténtalo de nuevo.'};
+      return {texto: 'No se pudo obtener la respuesta. Inténtalo de nuevo.'};
+    }
+
+    // Renderizar respuestas Markdown y matemáticas sin permitir HTML no confiable.
+    // Si una biblioteca no carga, conservar el texto original sin interpretar HTML.
+    function pFormatearRespuesta(elemento, texto) {
+      if (!window.marked || !window.DOMPurify || !window.katex) {
+        elemento.textContent = texto;
+        elemento.style.whiteSpace = 'pre-wrap';
+        return;
+      }
+      try {
+        var formulas = [];
+        var preparado = texto.replace(/\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$(?!\$)([^\n$]+?)\$(?!\$)/g, function (coincidencia, bloque1, bloque2, linea1, linea2) {
+          var formula = bloque1 || bloque2 || linea1 || linea2;
+          var bloque = bloque1 !== undefined || bloque2 !== undefined;
+          var marcador = 'ESTUDIAMATHPLACEHOLDER' + formulas.length + 'END';
+          formulas.push({ marcador: marcador, html: window.katex.renderToString(formula, { displayMode: bloque, throwOnError: false, trust: false, strict: 'ignore' }) });
+          return bloque ? '\n\n' + marcador + '\n\n' : marcador;
+        });
+        var html = window.marked.parse(preparado, { gfm: true, breaks: true });
+        formulas.forEach(function (f) { html = html.replace(f.marcador, function () { return f.html; }); });
+        elemento.innerHTML = window.DOMPurify.sanitize(html);
+      } catch (_error) {
+        elemento.textContent = texto;
+        elemento.style.whiteSpace = 'pre-wrap';
+      }
+    }
+
+    async function preguntar() {
+      if (pOcupado) return;
+      var pregunta = pTexto.value.trim();
+      if (!pregunta) { pMensaje('Escribe una pregunta antes de enviarla.', true); pTexto.focus(); return; }
+      if (pregunta.length > MAX_PREGUNTA) { pMensaje('La pregunta es demasiado larga. El máximo es ' + MAX_PREGUNTA + ' caracteres.', true); return; }
+      if (!cliente) { pMensaje('No se pudo cargar la conexión. Comprueba tu conexión a Internet.', true); return; }
+      var mia = ++pSolicitud;
+      pBloquear(true);
+      pMensaje('Consultando…', false);
+      try {
+        var s = await cliente.auth.getSession(); // renueva el token si hace falta
+        if (mia !== pSolicitud) return;
+        if (s.error || !s.data.session) {
+          pMensaje('Para hacer preguntas necesitas iniciar sesión.', true);
+          return;
+        }
+        var r = await cliente.functions.invoke('gemini-chat', { body: { pregunta: pregunta } });
+        if (mia !== pSolicitud || !pActiva()) return; // el usuario salió de la pantalla
+        if (r.error) {
+          var info = await pTextoError(r.error);
+          if (mia !== pSolicitud || !pActiva()) return;
+          pMensaje(info.texto, true);
+          return;
+        }
+        var texto = r.data && typeof r.data.respuesta === 'string' ? r.data.respuesta.trim() : '';
+        if (!texto) { pMensaje('El servicio respondió sin contenido. Inténtalo de nuevo.', true); return; }
+        var par = document.createElement('div'); par.className = 'par';
+        var q = document.createElement('p'); q.className = 'q'; q.textContent = pregunta;
+        var a = document.createElement('div'); a.className = 'a'; pFormatearRespuesta(a, texto);
+        par.appendChild(q); par.appendChild(a);
+        pConv.insertBefore(par, pConv.firstChild);
+        pTexto.value = ''; pContar();
+        pMensaje('', false);
+      } catch (err) {
+        if (mia === pSolicitud && pActiva()) pMensaje('No se pudo obtener la respuesta. Inténtalo de nuevo.', true);
+      } finally {
+        if (mia === pSolicitud) pBloquear(false);
+      }
+    }
+    pForm.addEventListener('submit', function (e) { e.preventDefault(); preguntar(); });
+    window.addEventListener('hashchange', function () {
+      if (!pActiva() && pOcupado) { pSolicitud++; pBloquear(false); pMensaje('', false); }
+    });
+    pContar();
+
+
+    // ===== Acceso con Google (Supabase vincula por correo verificado; sin vinculación manual) =====
+    document.getElementById('acceso-google').addEventListener('click', async function () {
+      if (!cliente) { aviso('No se pudo cargar la conexión. Comprueba tu conexión a Internet.'); return; }
+      aviso('Redirigiendo a Google…');
+      var r = await cliente.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
+      if (r.error) aviso(r.error.message || 'No se pudo iniciar con Google.');
+    });
+
+    // ===== Archivos: Storage "estudia-archivos" + tabla archivos_usuario =====
+    var BUCKET = 'estudia-archivos', MAX_BYTES = 50 * 1024 * 1024;
+    var MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+    var aForm = document.getElementById('form-subir'), aInput = document.getElementById('archivo-subir');
+    var aBoton = document.getElementById('boton-subir'), aTexto = document.getElementById('texto-subir');
+    var aEstado = document.getElementById('estado-subida'), aIr = document.getElementById('ir-biblioteca');
+    var bEstado = document.getElementById('estado-biblioteca'), bLista = document.getElementById('lista-archivos');
+    var aOcupado = false, bOcupado = false, eOcupado = false, rutasActivas = [];
+    // Listado completo de nombres de la carpeta, o null si hubo error o el listado pudo quedar incompleto.
+    async function listarNombres(carpeta) {
+      var r = await cliente.storage.from(BUCKET).list(carpeta, { limit: 1000 });
+      if (r.error || !Array.isArray(r.data) || r.data.length >= 1000) return null;
+      return r.data.map(function (o) { return o.name; });
+    }
+    // Calibración: un listado sin el objeto solo prueba su ausencia si se demuestra que este usuario puede subir, ver y borrar en su carpeta.
+    // Se sube una sonda mínima, se comprueba que el listado la ve, se elimina y se confirma que desapareció. Cualquier fallo => false.
+    async function calibrarCarpeta(carpeta) {
+      var nombre = 'sonda-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.pdf', ruta = carpeta + '/' + nombre;
+      var up = await cliente.storage.from(BUCKET).upload(ruta, new Blob(['sonda'], { type: 'application/pdf' }), { contentType: 'application/pdf', upsert: false });
+      if (up.error) return false;
+      var visto = await listarNombres(carpeta);
+      var ok = !!visto && visto.indexOf(nombre) !== -1;
+      var viejas = (visto || []).filter(function (n) { return n.indexOf('sonda-') === 0 && n !== nombre; }); // sondas propias abandonadas
+      var rm = await cliente.storage.from(BUCKET).remove([ruta].concat(viejas.map(function (n) { return carpeta + '/' + n; })));
+      if (rm.error) return false;
+      var despues = await listarNombres(carpeta);
+      return ok && !!despues && despues.indexOf(nombre) === -1;
+    }
+    // existeObjeto -> 'si' | 'no' | 'error'. Un error de red/permisos o un listado incompleto NUNCA se interpreta como ausencia.
+    // "no" solo es válido con el listado calibrado: se ve otra guía conocida, ya se vio este objeto antes, o la sonda funcionó.
+    async function existeObjeto(ruta, calibrado) {
+      var p = ruta.split('/'), nombres = await listarNombres(p[0]);
+      if (!nombres) return 'error';
+      if (nombres.indexOf(p[1]) !== -1) return 'si';
+      var vista = calibrado || rutasActivas.some(function (x) { return x !== ruta && nombres.indexOf(x.split('/')[1]) !== -1; });
+      if (!vista) vista = await calibrarCarpeta(p[0]);
+      return vista ? 'no' : 'error';
+    }
+    // borrarObjeto -> 'borrado' | 'ausente' | 'persiste' | 'incierto' (solo borrado/ausente permiten continuar)
+    async function borrarObjeto(ruta) {
+      var antes = await existeObjeto(ruta, false);
+      if (antes === 'error') return 'incierto';
+      if (antes === 'no') return 'ausente';
+      var r = await cliente.storage.from(BUCKET).remove([ruta]);
+      if (r.error) return 'incierto';
+      var despues = await existeObjeto(ruta, true);
+      return despues === 'no' ? 'borrado' : (despues === 'si' ? 'persiste' : 'incierto');
+    }
+    function msg(el, t, tipo) { el.textContent = t; el.className = 'estado-arch' + (tipo ? ' ' + tipo : ''); }
+    function tam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+    function errSesion(e) { var t = ((e && (e.message || '')) + ' ' + (e && e.status || '')).toLowerCase(); return /jwt|expired|401|403|not authenticated/.test(t); }
+    async function usuarioValido() {
+      if (!cliente) return null;
+      var r = await cliente.auth.getSession();
+      return (!r.error && r.data.session) ? r.data.session.user : null;
+    }
+    function archivosCambioSesion() {
+      if (!sesionActual) { bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); msg(aEstado, 'Inicia sesión para subir archivos.', ''); }
+      else { msg(aEstado, '', ''); if (location.hash === '#biblioteca') cargarArchivos(); }
+    }
+    aForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      if (aOcupado) return;
+      aIr.hidden = true;
+      var f = aInput.files && aInput.files[0];
+      if (!f) { msg(aEstado, 'Elige un archivo antes de subirlo.', 'error'); return; }
+      var ext = (f.name.split('.').pop() || '').toLowerCase();
+      if (!MIME[ext]) { msg(aEstado, 'Formato no permitido. Usa PDF, DOC, DOCX, JPG o PNG.', 'error'); return; }
+      if (f.size === 0) { msg(aEstado, 'El archivo está vacío.', 'error'); return; }
+      if (f.size > MAX_BYTES) { msg(aEstado, 'El archivo supera 50 MB.', 'error'); return; }
+      aOcupado = true; aBoton.disabled = true; aTexto.textContent = 'Subiendo…';
+      var ruta = null;
+      try {
+        msg(aEstado, 'Comprobando sesión…', '');
+        var u = await usuarioValido();
+        if (!u) { msg(aEstado, 'Necesitas iniciar sesión para subir archivos.', 'error'); return; }
+        ruta = u.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.' + ext;
+        msg(aEstado, 'Subiendo archivo… no cierres esta pantalla.', '');
+        var up = await cliente.storage.from(BUCKET).upload(ruta, f, { contentType: MIME[ext], upsert: false });
+        if (up.error) throw up.error;
+        msg(aEstado, 'Registrando archivo…', '');
+        var ins = await cliente.from('archivos_usuario').insert({ nombre_original: f.name.slice(0, 200), ruta: ruta, tipo: ext, tamano: f.size });
+        if (ins.error) {
+          var ex = await cliente.from('archivos_usuario').select('id').eq('ruta', ruta).maybeSingle();
+          if (ex.error) throw new Error('registro_incierto'); // no se puede saber si se guardó: no tocar el archivo
+          if (!ex.data) {
+            var lim = await borrarObjeto(ruta); // evita archivos físicos huérfanos, con comprobación real
+            if (lim !== 'borrado' && lim !== 'ausente') throw new Error('limpieza_pendiente');
+            throw ins.error;
+          } // si la fila existe, la respuesta se perdió: se trata como subida correcta
+        }
+        aInput.value = '';
+        msg(aEstado, 'Archivo subido correctamente.', 'ok');
+        aIr.hidden = false;
+      } catch (err) {
+        console.warn('estudia_subida', (err && (err.code || err.status || err.name || err.message)) || 'desconocido');
+        var m = err && err.message;
+        msg(aEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.'
+          : m === 'limpieza_pendiente' ? 'El archivo se subió pero no pudo registrarse y no se pudo limpiar. Inténtalo de nuevo.'
+          : m === 'registro_incierto' ? 'No se pudo confirmar el registro del archivo. Revisa tu biblioteca antes de volver a subirlo.'
+          : 'No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.', 'error');
+      } finally {
+        aOcupado = false; aBoton.disabled = false; aTexto.textContent = 'Subir archivo';
+      }
+    });
+    async function cargarArchivos() {
+      if (bOcupado) return;
+      bOcupado = true; msg(bEstado, 'Cargando…', '');
+      try {
+        var u = await usuarioValido();
+        if (!u) { bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); return; }
+        var r = await cliente.from('archivos_usuario').select('id,nombre_original,ruta,tipo,tamano,creado_en,estado').order('creado_en', { ascending: false });
+        if (r.error) throw r.error;
+        bLista.innerHTML = '';
+        rutasActivas = r.data.filter(function (x) { return x.estado === 'activo'; }).map(function (x) { return x.ruta; });
+        var pend = r.data.some(function (x) { return x.estado === 'eliminando'; });
+        msg(bEstado, pend ? 'Hay guías con eliminación pendiente. Pulsa «Reintentar eliminación».' : (r.data.length ? '' : 'Aún no has subido guías.'), '');
+        r.data.forEach(function (a) {
+          var li = document.createElement('li'), n = document.createElement('p'), m = document.createElement('p'), acc = document.createElement('div');
+          n.className = 'nom'; n.textContent = a.nombre_original;
+          m.className = 'meta'; m.textContent = a.tipo.toUpperCase() + ' · ' + tam(a.tamano) + ' · ' + new Date(a.creado_en).toLocaleDateString('es') + (a.estado === 'eliminando' ? ' · eliminación pendiente' : '');
+          acc.className = 'acc';
+          if (a.estado === 'activo') {
+            var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'mini'; ab.textContent = 'Abrir';
+            ab.addEventListener('click', function () { abrirArchivo(a, ab); }); acc.appendChild(ab);
+          }
+          var el = document.createElement('button'); el.type = 'button'; el.className = 'mini peligro';
+          el.textContent = a.estado === 'activo' ? 'Eliminar' : 'Reintentar eliminación';
+          el.addEventListener('click', function () { eliminarGuia(a, el); }); acc.appendChild(el);
+          li.appendChild(n); li.appendChild(m); li.appendChild(acc); bLista.appendChild(li);
+        });
+      } catch (err) {
+        msg(bEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudieron cargar tus guías. Inténtalo de nuevo.', 'error');
+      } finally { bOcupado = false; }
+    }
+    async function abrirArchivo(a, boton) {
+      if (boton.disabled) return;
+      boton.disabled = true;
+      var w = window.open('', '_blank');
+      try {
+        var r = await cliente.storage.from(BUCKET).createSignedUrl(a.ruta, 60);
+        if (r.error) throw r.error;
+        if (w) { w.opener = null; w.location.href = r.data.signedUrl; } else { location.href = r.data.signedUrl; }
+      } catch (err) {
+        if (w) w.close();
+        msg(bEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudo abrir el archivo.', 'error');
+      } finally { boton.disabled = false; }
+    }
+    // Eliminación coherente: 1) marcar «eliminando» 2) borrar objeto con la API de Storage 3) borrar la fila (cascada a sesiones, materiales y resultados)
+    async function eliminarGuia(a, boton) {
+      if (boton.disabled || eOcupado) return;
+      if (a.estado === 'activo' && !window.confirm('¿Eliminar «' + a.nombre_original + '»? Se borrarán el archivo, sus sesiones, ejercicios y resultados. No se puede deshacer.')) return;
+      eOcupado = true; boton.disabled = true; msg(bEstado, 'Eliminando…', '');
+      try {
+        var p1 = await cliente.from('archivos_usuario').update({ estado: 'eliminando' }).eq('id', a.id).select('id');
+        if (p1.error) throw p1.error;
+        if (!p1.data || p1.data.length !== 1) throw new Error('borrado_no_confirmado');
+        var est = await borrarObjeto(a.ruta);
+        if (est !== 'borrado' && est !== 'ausente') throw new Error('borrado_no_confirmado');
+        var p3 = await cliente.from('archivos_usuario').delete().eq('id', a.id).select('id');
+        if (p3.error) throw p3.error;
+        if (!p3.data || p3.data.length !== 1) throw new Error('borrado_no_confirmado');
+        msg(bEstado, 'Guía eliminada.', 'ok');
+      } catch (err) {
+        console.warn('estudia_eliminar', (err && (err.code || err.status || err.name || err.message)) || 'desconocido');
+        msg(bEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.'
+          : (err && err.message === 'borrado_no_confirmado') ? 'No se pudo confirmar el borrado del archivo. Pulsa «Reintentar eliminación».'
+          : 'No se pudo completar la eliminación. Pulsa «Reintentar eliminación».', 'error');
+      } finally { eOcupado = false; }
+      await cargarArchivos();
+    }
+    window.addEventListener('hashchange', function () { if (location.hash === '#biblioteca') cargarArchivos(); });
+    if (location.hash === '#biblioteca') cargarArchivos();
+
+    window.addEventListener('hashchange', mostrar);
+    mostrar();
+  })();
+</script>
+</body>
+</html>
