@@ -11,10 +11,18 @@
     --texto: #131c3d;
     --texto-suave: #5f6b85;
     --azul: #3b82f0;
+    --azul-oscuro: #2467c8;
+    --azul-claro: #e3efff;
     --azul-pastel: #e3efff;
     --verde: #2a9d76;
+    --verde-oscuro: #176f55;
+    --verde-claro: #def6ee;
     --verde-pastel: #def6ee;
     --lila: #7367cf;
+    --lila-oscuro: #5644a9;
+    --lila-claro: #ece9fb;
+    --rojo: #dc5964; --rojo-oscuro: #aa3541; --rojo-claro: #fde9ec;
+    --amarillo: #e1b747; --amarillo-oscuro: #ac7716; --amarillo-claro: #fff3cd;
     --lila-pastel: #ece9fb;
     --lila-azulado-pastel: #e9eefc;
     --fuente: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
@@ -224,7 +232,22 @@
   .rapido-error { border:1px solid #dce9e3; border-radius:12px; padding:12px; margin:10px 0; }
   .rapido-error p { margin:6px 0; overflow-wrap:anywhere; }
   .rapido-error-enunciado { font-weight:700; }
-  .rapido-respuesta-correcta { color:#176947; font-weight:700; }
+  .rapido-respuesta-correcta { color:var(--verde-oscuro); font-weight:700; }
+  /* Tonos consistentes con la paleta original; contraste en los controles activos. */
+  .rapido-opcion:has(input:checked) { background:var(--verde-claro); outline:2px solid var(--verde-oscuro); }
+  .rapido .boton.b-verde:hover:not(:disabled) { background:var(--verde-oscuro); }
+  .rapido-publicacion { margin-top:10px; background:var(--azul); }
+  .rapido-publicacion:hover:not(:disabled) { background:var(--azul-oscuro); }
+  .rapido-decision { display:grid; gap:10px; margin-top:12px; }
+  .rapido-decision .boton { margin-top:0; }
+  .rapido-guardada { margin-top:8px; font-weight:700; color:var(--verde-oscuro); }
+  .biblio-pruebas { margin-top:18px; padding:16px; background:var(--verde-pastel); border-radius:22px; text-align:left; }
+  .biblio-pruebas h3 {margin:0 0 7px; font-size:1.2rem; }
+  .biblio-pruebas .lista-arch {margin-top:12px; }
+  .biblio-pruebas .boton {cursor:pointer; }
+  .ajuste-sonido {display:flex; align-items:center; justify-content:flex-end; gap:8px; margin:4px 0 10px; color:var(--texto-suave); font-size:.83rem;}
+  .ajuste-sonido input {width:20px;height:20px;accent-color:var(--verde-oscuro);}
+
 
   /* Cuestionario adaptable a la pantalla: hasta 480 px de ancho y 100dvh de alto.
      Solo la tarjeta de preguntas se desplaza; la revisión final sigue libre. */
@@ -407,6 +430,7 @@
 
   <section class="pantalla provisional" id="estudiar" aria-labelledby="t-estudiar">
     <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
+      <div class="ajuste-sonido"><label for="sonido-estudia">Sonidos de interacción</label><input id="sonido-estudia" type="checkbox" checked></div>
     <div class="menu-act">
       <h2 id="t-estudiar" tabindex="-1">Comenzar a estudiar</h2>
       <p>Elige una actividad.</p>
@@ -450,6 +474,7 @@
         </div>
         <button type="button" id="rapido-finalizar" class="boton b-verde" hidden>Finalizar y calificar</button>
       </div>
+      <div id="rapido-decision" class="rapido-resultado" hidden aria-live="polite"></div>
       <div id="rapido-resultado" class="rapido-resultado" hidden aria-live="polite"></div>
     </div>
   </section>
@@ -478,6 +503,12 @@
       <p>Tus guías subidas. Solo tú puedes verlas.</p>
       <p class="estado-arch" id="estado-biblioteca" role="status" aria-live="polite"></p>
       <ul class="lista-arch" id="lista-archivos"></ul>
+      <section class="biblio-pruebas" aria-labelledby="titulo-pruebas-guardadas">
+        <h3 id="titulo-pruebas-guardadas">Mis pruebas</h3>
+        <p class="rapido-nota">Pruebas publicadas para tu uso personal. Se conservan aunque elimines el documento original.</p>
+        <p id="estado-pruebas-guardadas" class="estado-arch" role="status"></p>
+        <ul class="lista-arch" id="lista-pruebas-guardadas"></ul>
+      </section>
     </div>
   </section>
 
@@ -585,6 +616,36 @@
       elegirRegistro.setAttribute('aria-pressed', String(registro));
       aviso(registro ? 'Ingresa tu correo y una contraseña para crear tu cuenta.' : 'Ingresa tu correo y contraseña para continuar.');
     }
+    // Sonidos originales generados en el navegador; sin archivos externos.
+    var sonidoControl = document.getElementById('sonido-estudia');
+    var sonidoActivo = true, sonidoContexto = null;
+    try { sonidoActivo = localStorage.getItem('estudia-sonidos') !== 'off'; } catch (_) {}
+    sonidoControl.checked = sonidoActivo;
+    sonidoControl.addEventListener('change', function() {
+      sonidoActivo = sonidoControl.checked;
+      try { localStorage.setItem('estudia-sonidos', sonidoActivo ? 'on' : 'off'); } catch (_) {}
+    });
+    function sonidoTono(tipo) {
+      if (!sonidoActivo) return;
+      try {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!sonidoContexto) sonidoContexto = new AudioCtx();
+        if (sonidoContexto.state === 'suspended') sonidoContexto.resume().catch(function(){});
+        var ahora = sonidoContexto.currentTime;
+        var freqs = tipo === 'final' ? [523,659,784] : tipo === 'error' ? [270,220] : [440];
+        freqs.forEach(function(freq,i){
+          var osc = sonidoContexto.createOscillator(), gain = sonidoContexto.createGain();
+          var ini = ahora + i * .085, fin = ini + .10;
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.0001, ini);
+          gain.gain.exponentialRampToValueAtTime(0.045, ini + .012);
+          gain.gain.exponentialRampToValueAtTime(0.0001, fin);
+          osc.connect(gain); gain.connect(sonidoContexto.destination);
+          osc.start(ini); osc.stop(fin + .01);
+        });
+      } catch (_) { /* Sin audio no se interrumpe el cuestionario. */ }
+    }
     var sesionActual = null;
     function estado(sesion) {
       sesionActual = sesion || null;
@@ -592,6 +653,7 @@
       if (typeof erActual !== 'undefined' && erActual && (!sesion || !sesion.user || erActual.usuario !== sesion.user.id)) {
         erActual = null;
         erEjercicio.hidden = true; erResultado.hidden = true; erElegir.hidden = false;
+        erDecision.hidden = true;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
         erGenerar.disabled = true;
       }
@@ -757,6 +819,9 @@
     var aBoton = document.getElementById('boton-subir'), aTexto = document.getElementById('texto-subir');
     var aEstado = document.getElementById('estado-subida'), aIr = document.getElementById('ir-biblioteca');
     var bEstado = document.getElementById('estado-biblioteca'), bLista = document.getElementById('lista-archivos');
+    var bpEstado = document.getElementById('estado-pruebas-guardadas');
+    var bpLista = document.getElementById('lista-pruebas-guardadas');
+    var bpConsulta = 0;
     var aOcupado = false, bOcupado = false, eOcupado = false, rutasActivas = [];
     // Listado completo de nombres de la carpeta, o null si hubo error o el listado pudo quedar incompleto.
     async function listarNombres(carpeta) {
@@ -807,7 +872,7 @@
       return (!r.error && r.data.session) ? r.data.session.user : null;
     }
     function archivosCambioSesion() {
-      if (!sesionActual) { bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); msg(aEstado, 'Inicia sesión para subir archivos.', ''); }
+      if (!sesionActual) { bpConsulta++; bpLista.replaceChildren(); bpEstado.textContent='Inicia sesión para ver tus pruebas.'; bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); msg(aEstado, 'Inicia sesión para subir archivos.', ''); }
       else { msg(aEstado, '', ''); if (location.hash === '#biblioteca') cargarArchivos(); }
     }
     aForm.addEventListener('submit', async function (e) {
@@ -858,6 +923,7 @@
     async function cargarArchivos() {
       if (bOcupado) return;
       bOcupado = true; msg(bEstado, 'Cargando…', '');
+      cargarPruebasPublicadas();
       try {
         var u = await usuarioValido();
         if (!u) { bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); return; }
@@ -921,6 +987,32 @@
       } finally { eOcupado = false; }
       await cargarArchivos();
     }
+    async function cargarPruebasPublicadas() {
+      var consulta = ++bpConsulta;
+      bpLista.replaceChildren(); bpEstado.textContent = 'Cargando pruebas…';
+      try {
+        var u = await usuarioValido();
+        if (!u) { if (consulta === bpConsulta) bpEstado.textContent='Inicia sesión para ver tus pruebas.'; return; }
+        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'listar_publicadas'}});
+        if (consulta !== bpConsulta || location.hash !== '#biblioteca') return;
+        if (r.error || !r.data || !Array.isArray(r.data.pruebas)) throw r.error || new Error('Listado no disponible');
+        var pruebas = r.data.pruebas;
+        bpEstado.textContent = pruebas.length ? '' : 'Aún no has publicado pruebas.';
+        pruebas.forEach(function(prueba) {
+          var li = document.createElement('li'), nombre = document.createElement('p');
+          nombre.className = 'nom'; nombre.textContent = prueba.nombre;
+          var meta = document.createElement('p'); meta.className = 'meta';
+          meta.textContent = '25 preguntas · ' + new Date(prueba.creado_en).toLocaleDateString('es-CL');
+          var acciones = document.createElement('div'); acciones.className = 'acc';
+          var abrir = document.createElement('button'); abrir.type='button'; abrir.className='mini'; abrir.textContent='Abrir prueba';
+          abrir.addEventListener('click', function() { erAbrirPublicada(prueba.id, abrir); });
+          acciones.appendChild(abrir); li.appendChild(nombre); li.appendChild(meta); li.appendChild(acciones);
+          bpLista.appendChild(li);
+        });
+      } catch (_) {
+        if (consulta === bpConsulta) bpEstado.textContent = 'No se pudieron cargar las pruebas. Vuelve a entrar en Biblioteca.';
+      }
+    }
     window.addEventListener('hashchange', function () { if (location.hash === '#biblioteca') cargarArchivos(); });
     if (location.hash === '#biblioteca') cargarArchivos();
 
@@ -938,20 +1030,54 @@
     var erAnterior = document.getElementById('rapido-anterior');
     var erSiguiente = document.getElementById('rapido-siguiente');
     var erFinalizar = document.getElementById('rapido-finalizar');
+    var erDecision = document.getElementById('rapido-decision');
     var erOcupado = false, erConsulta = 0, erCargando = false, erActual = null;
     function erVisible() { return location.hash === '#estudio-rapido'; }
     function erMensaje(texto, error) { erEstado.textContent = texto; erEstado.className = 'estado-rapido' + (error ? ' error' : ''); }
+    function erIdActual() { return erActual && (erActual.prueba_id ? 'publicada:' + erActual.prueba_id : erActual.material_id); }
     function erAlmacen(userId, materialId) { return 'estudia-rapido-borrador:' + userId + ':' + materialId; }
+    function erNuevoIntento() {
+      erActual.indice = 0; erActual.respuestas = Array(25).fill(null);
+      erActual.intento_id = crypto.randomUUID(); erGuardar();
+      erResultado.hidden = true; erDecision.hidden = true; erEjercicio.hidden = false; erElegir.hidden = true;
+      erMensaje('Nuevo intento. Los resultados anteriores se conservan.', false);
+      erPintar(); erOpciones.parentElement.scrollTop = 0;
+    }
+    function erIrAlSelector() {
+      if (erOcupado) return;
+      erActual = null; erConsulta++;
+      erResultado.hidden = true; erResultado.replaceChildren();
+      erDecision.hidden = true; erDecision.replaceChildren();
+      erEjercicio.hidden = true; erElegir.hidden = false;
+      erSeleccion.value = ''; erGenerar.disabled = true; erMensaje('', false);
+      if (erVisible()) erPrepararLista();
+    }
+    function erDecidirIntento(verResultado) {
+      erElegir.hidden = true; erEjercicio.hidden = true; erResultado.hidden = true;
+      erDecision.hidden = false; erDecision.replaceChildren();
+      var intro = document.createElement('p'); intro.textContent = 'Esta guía ya tiene resultados guardados. ¿Qué deseas hacer?';
+      erDecision.appendChild(intro);
+      var acciones = document.createElement('div'); acciones.className = 'rapido-decision';
+      var ver = document.createElement('button'); ver.type = 'button'; ver.className = 'boton b-verde'; ver.textContent='Ver resultados anteriores';
+      ver.addEventListener('click', function(){ sonidoTono('click'); erDecision.hidden=true; verResultado(); });
+      var iniciar = document.createElement('button'); iniciar.type = 'button'; iniciar.className = 'boton b-verde'; iniciar.textContent='Comenzar nueva prueba';
+      iniciar.addEventListener('click', function(){ sonidoTono('click'); erNuevoIntento(); });
+      var salir = document.createElement('button'); salir.type = 'button'; salir.className = 'boton b-verde rapido-salir'; salir.textContent='Salir de la prueba';
+      salir.addEventListener('click', function(){ erIrAlSelector(); location.hash='#estudiar'; });
+      acciones.appendChild(ver); acciones.appendChild(iniciar); acciones.appendChild(salir); erDecision.appendChild(acciones);
+      erMensaje('', false);
+    }
+
     function erGuardar() {
       if (!erActual) return;
       try {
-        localStorage.setItem(erAlmacen(erActual.usuario, erActual.material_id), JSON.stringify({respuestas:erActual.respuestas,indice:erActual.indice,intento_id:erActual.intento_id}));
+        localStorage.setItem(erAlmacen(erActual.usuario, erIdActual()), JSON.stringify({respuestas:erActual.respuestas,indice:erActual.indice,intento_id:erActual.intento_id}));
       } catch (_) { erMensaje('No se pudo guardar el avance local. Mantén abierta esta pantalla para conservarlo.', true); }
     }
     function erRestaurar() {
       if (!erActual) return;
       try {
-        var valor = JSON.parse(localStorage.getItem(erAlmacen(erActual.usuario, erActual.material_id)) || 'null');
+        var valor = JSON.parse(localStorage.getItem(erAlmacen(erActual.usuario, erIdActual())) || 'null');
         if (valor && Array.isArray(valor.respuestas) && valor.respuestas.length === 25 &&
             valor.respuestas.every(function(n){return n === null || (Number.isInteger(n) && n >= 0 && n <= 3)})) {
           erActual.respuestas = valor.respuestas;
@@ -973,7 +1099,7 @@
         radio.checked = erActual.respuestas[i] === numero; radio.disabled = erOcupado;
         radio.addEventListener('change', function() {
           if (!erActual || erOcupado) return;
-          erActual.respuestas[i] = numero;
+          erActual.respuestas[i] = numero; sonidoTono('click');
           erGuardar(); erContador.textContent = 'Pregunta ' + (i+1) + ' de 25 · ' + erActual.respuestas.filter(function(x){return x !== null}).length + ' respondidas';
         });
         var t = document.createElement('span'); t.textContent = texto;
@@ -989,7 +1115,7 @@
       if (!erActual || erOcupado) return;
       var nuevo = erActual.indice + delta;
       if (nuevo < 0 || nuevo > 24) return;
-      erActual.indice = nuevo; erGuardar(); erPintar();
+      erActual.indice = nuevo; sonidoTono('click'); erGuardar(); erPintar();
       // Al cambiar de pregunta, reiniciar solo el desplazamiento de la tarjeta.
       // No desplazar la página completa, que ahora ocupa el alto de la pantalla.
       erOpciones.parentElement.scrollTop = 0;
@@ -997,10 +1123,11 @@
     // Al salir de una prueba ya calificada, liberar la guía seleccionada.
     // No borrar resultados de Supabase ni avances de pruebas inconclusas.
     function erCerrarPruebaTerminada() {
-      if (erResultado.hidden || erOcupado) return;
+      if ((erResultado.hidden && erDecision.hidden) || erOcupado) return;
       erActual = null;
       erResultado.hidden = true;
       erResultado.replaceChildren();
+      erDecision.hidden = true; erDecision.replaceChildren();
       erEjercicio.hidden = true;
       erElegir.hidden = false;
       erSeleccion.value = '';
@@ -1010,7 +1137,7 @@
     erAnterior.addEventListener('click', function(){ erCambiarPaso(-1); });
     erSiguiente.addEventListener('click', function(){ erCambiarPaso(1); });
     function erVerResultado(puntaje, total, previo, correcciones) {
-      erEjercicio.hidden = true; erElegir.hidden = true; erResultado.hidden = false;
+      erEjercicio.hidden = true; erElegir.hidden = true; erDecision.hidden=true; erResultado.hidden = false;
       erResultado.replaceChildren();
       var titulo = document.createElement('p'); titulo.textContent = previo ? 'Este cuestionario ya fue calificado.' : 'Estudio rápido finalizado.';
       var nota = document.createElement('strong'); nota.textContent = puntaje + ' de ' + total + ' respuestas correctas';
@@ -1055,15 +1182,34 @@
       var reiniciar = document.createElement('button');
       reiniciar.type = 'button'; reiniciar.className = 'boton b-verde';
       reiniciar.textContent = 'Repetir la prueba';
-      reiniciar.addEventListener('click', function() {
-        if (!erActual || erOcupado) return;
-        erActual.indice = 0; erActual.respuestas = Array(25).fill(null);
-        erActual.intento_id = crypto.randomUUID();
-        erGuardar();
-        erResultado.hidden = true; erEjercicio.hidden = false; erElegir.hidden = true;
-        erMensaje('Nuevo intento. El resultado anterior se conserva.', false);
-        erPintar(); erOpciones.parentElement.scrollTop = 0;
-      });
+      reiniciar.addEventListener('click', function() { if (!erActual || erOcupado) return; sonidoTono('click'); erNuevoIntento(); });
+      if (erActual && !erActual.prueba_id && erActual.material_id) {
+        var publicar = document.createElement('button');
+        publicar.type = 'button'; publicar.className = 'boton rapido-publicacion';
+        publicar.textContent = 'Publicar en biblioteca';
+        publicar.addEventListener('click', async function() {
+          if (erOcupado || !erActual || erActual.prueba_id || !cliente) return;
+          var materialId = erActual.material_id;
+          publicar.disabled = true; publicar.textContent = 'Publicando…';
+          erOcupado = true;
+          try {
+            var titulo = erActual.nombre_guia || 'Prueba de estudio rápido';
+            var res = await cliente.functions.invoke('estudio-rapido',
+              {body:{accion:'publicar', material_id:materialId, nombre:titulo}});
+            if (res.error || !res.data || !res.data.publicada || !res.data.prueba_id)
+              throw res.error || new Error('Publicación no confirmada');
+            sonidoTono('final');
+            publicar.textContent = 'Publicada en biblioteca';
+            var aviso = document.createElement('p'); aviso.className='rapido-guardada';
+            aviso.textContent = 'Prueba guardada en tu biblioteca personal. Permanecerá disponible aunque elimines la guía original.';
+            publicar.insertAdjacentElement('afterend', aviso);
+          } catch (e) {
+            publicar.disabled = false; publicar.textContent = 'Publicar en biblioteca';
+            erMensaje('No se pudo confirmar la publicación. Comprueba que la guía original siga activa e inténtalo otra vez.', true);
+          } finally { erOcupado = false; }
+        });
+        erResultado.appendChild(publicar);
+      }
       erResultado.appendChild(reiniciar);
       var salir = document.createElement('button');
       salir.type = 'button'; salir.className = 'boton b-verde rapido-salir';
@@ -1075,16 +1221,20 @@
       });
       erResultado.appendChild(salir);
       // Leer el historial desde la base de datos: nunca calcularlo solo con el navegador.
-      erMostrarHistorial(erActual && erActual.material_id);
+      erMostrarHistorial(erIdActual());
       erMensaje('', false);
     }
     async function erMostrarHistorial(materialId) {
       if (!materialId || !cliente) return;
       try {
-        var r = await cliente.from('resultados').select('id,puntaje,detalle,creado_en')
-          .eq('material_id', materialId).eq('detalle->>actividad', 'estudio_rapido')
-          .order('creado_en', {ascending:false}).limit(30);
-        if (r.error || erResultado.hidden || !erActual || erActual.material_id !== materialId) return;
+        var publicado = erActual && !!erActual.prueba_id;
+        var r = publicado
+          ? await cliente.from('pruebas_publicadas_intentos').select('id,puntaje,detalle,creado_en')
+              .eq('prueba_id', erActual.prueba_id).order('creado_en',{ascending:false}).limit(30)
+          : await cliente.from('resultados').select('id,puntaje,detalle,creado_en')
+              .eq('material_id', materialId).eq('detalle->>actividad', 'estudio_rapido')
+              .order('creado_en', {ascending:false}).limit(30);
+        if (r.error || erResultado.hidden || !erActual || erIdActual() !== materialId) return;
         var historial = document.createElement('div');
         var h = document.createElement('h3'); h.textContent = 'Historial de intentos';
         historial.appendChild(h);
@@ -1147,6 +1297,49 @@
       if (status === 409) return 'Este cuestionario ya fue calificado.';
       return 'No se pudo completar la solicitud. Revisa la conexión o inténtalo de nuevo.';
     }
+    async function erAbrirPublicada(pruebaId, boton) {
+      if (!cliente || erOcupado) return;
+      erOcupado = true; boton.disabled = true; bpEstado.textContent='Abriendo prueba…';
+      var operacion = ++erConsulta;
+      try {
+        var u = await usuarioValido();
+        if (!u) throw new Error('sin_sesion');
+        var r = await cliente.functions.invoke('estudio-rapido',
+          {body:{accion:'abrir_publicada',prueba_id:pruebaId}});
+        if (r.error || !r.data || !Array.isArray(r.data.preguntas) || r.data.preguntas.length !== 25)
+          throw r.error || new Error('prueba_invalida');
+        var d = r.data;
+        if (!d.preguntas.every(function(p){return typeof p.enunciado==='string' && Array.isArray(p.alternativas) && p.alternativas.length===4 && !Object.prototype.hasOwnProperty.call(p,'correcta');}))
+          throw new Error('preguntas_invalidas');
+        if (operacion !== erConsulta) return;
+        erActual = {usuario:u.id, prueba_id:pruebaId, material_id:null, preguntas:d.preguntas,
+          indice:0,respuestas:Array(25).fill(null),intento_id:null,nombre_guia:d.nombre};
+        erRestaurar();
+        location.hash='#estudio-rapido';
+        erElegir.hidden=true; erResultado.hidden=true; erDecision.hidden=true;
+        if (erActual.intento_id) {
+          erEjercicio.hidden=false; erMensaje('Continuando tu intento pendiente.',false); erPintar();
+        } else if (Array.isArray(d.intentos) && d.intentos.length) {
+          erDecidirIntento(async function(){
+            erDecision.hidden=true; erResultado.hidden=false; erResultado.replaceChildren();
+            erMensaje('Cargando resultado anterior…',false);
+            var ultimo=d.intentos[0], revision=null;
+            try {
+              var rr=await cliente.functions.invoke('estudio-rapido',
+                {body:{accion:'revisar_publicada',prueba_id:pruebaId,resultado_id:ultimo.id}});
+              if (!rr.error && rr.data && Array.isArray(rr.data.correcciones)) revision=rr.data.correcciones;
+            } catch (_) {}
+            if (!erActual || erActual.prueba_id!==pruebaId || !erVisible()) return;
+            erVerResultado(Number(ultimo.puntaje),25,true,revision);
+          });
+        } else {
+          erNuevoIntento();
+        }
+        bpEstado.textContent='';
+      } catch (_) {
+        bpEstado.textContent='No se pudo abrir la prueba. Inténtalo nuevamente.';
+      } finally { erOcupado=false; boton.disabled=false; if(erActual && erActual.prueba_id===pruebaId && !erEjercicio.hidden) erPintar(); }
+    }
     erGenerar.addEventListener('click', async function() {
       if (erOcupado || !erSeleccion.value || !cliente) return;
       var id = erSeleccion.value, operacion = ++erConsulta;
@@ -1163,7 +1356,7 @@
           erMensaje('El servicio devolvió preguntas en un formato inesperado.', true); return;
         }
         erActual = {usuario:u.id, material_id:d.material_id, preguntas:d.preguntas,
-          indice:0, respuestas:Array(25).fill(null), intento_id:null};
+          indice:0, respuestas:Array(25).fill(null), intento_id:null, nombre_guia:erSeleccion.selectedOptions[0]?.textContent || 'Prueba de estudio rápido'};
         erRestaurar();
         // Un borrador de reintento tiene su identificador, aunque aún no haya respuestas.
         var reintentoPendiente = !!erActual.intento_id;
@@ -1176,8 +1369,8 @@
             if (!revision.error && revision.data && Array.isArray(revision.data.correcciones))
               correccionesPrevias = revision.data.correcciones;
           } catch (_) { /* Mostrar de todos modos la nota anterior. */ }
-          erVerResultado(Number(previo.puntaje), (previo.detalle && previo.detalle.total) || 25,
-            true, correccionesPrevias);
+          var notaPrevia=Number(previo.puntaje), totalPrevio=(previo.detalle && previo.detalle.total) || 25;
+          erDecidirIntento(function(){ erVerResultado(notaPrevia,totalPrevio,true,correccionesPrevias); });
           return;
         }
         erElegir.hidden = true; erEjercicio.hidden = false; erResultado.hidden = true;
@@ -1209,7 +1402,10 @@
       erOcupado = true; erFinalizar.disabled = true; erAnterior.disabled = true;
       erMensaje('Guardando y calificando tus respuestas…', false);
       try {
-        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'calificar',material_id:erActual.material_id,intento_id:erActual.intento_id,respuestas:erActual.respuestas}});
+        var calificarBody = erActual.prueba_id
+          ? {accion:'calificar_publicada',prueba_id:erActual.prueba_id,intento_id:erActual.intento_id,respuestas:erActual.respuestas}
+          : {accion:'calificar',material_id:erActual.material_id,intento_id:erActual.intento_id,respuestas:erActual.respuestas};
+        var r = await cliente.functions.invoke('estudio-rapido', {body:calificarBody});
         if (r.error) {
           if (r.error.context && r.error.context.status === 409) {
             erMensaje('Este intento ya fue registrado. Vuelve a entrar para consultar el resultado.', true);
@@ -1220,8 +1416,8 @@
         if (!r.data || typeof r.data.puntaje !== 'number' || r.data.total !== 25) {
           erMensaje('No se pudo confirmar el resultado. Verifícalo antes de enviar otra vez.', true); return;
         }
-        try { localStorage.removeItem(erAlmacen(erActual.usuario, erActual.material_id)); } catch (_) {}
-        erVerResultado(r.data.puntaje, r.data.total, false,
+        try { localStorage.removeItem(erAlmacen(erActual.usuario, erIdActual())); } catch (_) {}
+        sonidoTono('final'); erVerResultado(r.data.puntaje, r.data.total, false,
           Array.isArray(r.data.correcciones) ? r.data.correcciones : null);
       } catch (e) {
         erMensaje('No se pudo confirmar la calificación. Revisa la conexión antes de reintentar.', true);
