@@ -197,6 +197,27 @@
   .mini{flex:1;min-height:44px;border-radius:12px;border:2px solid var(--azul);background:#fff;color:var(--texto);font:700 .9rem/1 var(--fuente);cursor:pointer}
   .mini.peligro{border-color:#a12b2b;color:#a12b2b}
   .mini:disabled{opacity:.5;cursor:not-allowed}
+
+  /* ===== Estudio rápido: interfaz aislada del resto de actividades ===== */
+  .rapido { margin-top:18px; background:var(--verde-pastel); border-radius:26px; padding:22px 16px; box-shadow:0 8px 22px rgba(90,110,170,.10); }
+  .rapido h2 { margin:0 0 8px; text-align:center; font-size:1.6rem; }
+  .rapido p { line-height:1.45; }
+  .rapido label { display:block; margin:12px 0 6px; font-weight:700; }
+  .rapido select { width:100%; min-height:46px; background:#fff; color:var(--texto); border:1px solid #a9b9d6; border-radius:12px; padding:10px; font:inherit; }
+  .rapido .boton { cursor:pointer; margin-top:14px; }
+  .rapido .boton:disabled { opacity:.6; cursor:not-allowed; }
+  .rapido .estado-rapido { min-height:1.5em; color:var(--texto-suave); margin:12px 0 0; }
+  .rapido .estado-rapido.error { color:#a12b2b; font-weight:600; }
+  .rapido-pregunta { margin-top:18px; padding:18px 14px; border-radius:18px; background:#fff; }
+  .rapido-pregunta h3 { margin:4px 0 14px; font-size:1.12rem; line-height:1.45; overflow-wrap:anywhere; }
+  .rapido-opcion { display:flex!important; align-items:flex-start; gap:10px; min-height:46px; padding:12px; background:#f2f8f6; border-radius:12px; margin:8px 0!important; font-weight:500!important; cursor:pointer; overflow-wrap:anywhere; }
+  .rapido-opcion input { flex:none; margin-top:3px; accent-color:var(--verde); width:18px; height:18px; }
+  .rapido-acciones { display:flex; gap:10px; }
+  .rapido-acciones .boton { flex:1; }
+  .rapido-progreso { font-weight:700; color:var(--texto-suave); }
+  .rapido-nota { font-size:.86rem; color:var(--texto-suave); }
+  .rapido-resultado { padding:18px; background:#fff; border-radius:18px; margin-top:16px; text-align:center; }
+  .rapido-resultado strong { font-size:1.5rem; }
 </style>
 </head>
 <body>
@@ -339,7 +360,7 @@
       <h2 id="t-estudiar" tabindex="-1">Comenzar a estudiar</h2>
       <p>Elige una actividad.</p>
       <ul>
-        <li><span class="act destacada" aria-disabled="true"><span class="nom">Estudio rápido</span><span class="pronto">Próximamente</span></span></li>
+        <li><a class="act destacada" href="#estudio-rapido"><span class="nom">Estudio rápido</span></a></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Resúmenes</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Preguntas</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Cuestionarios</span><span class="pronto">Próximamente</span></span></li>
@@ -348,6 +369,37 @@
         <li><span class="act" aria-disabled="true"><span class="nom">Trípticos</span><span class="pronto">Próximamente</span></span></li>
         <li><a class="act" href="#preguntas-app"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="nom">Preguntas a la app<small>Haz preguntas y resuelve tus dudas de estudio.</small></span></a></li>
       </ul>
+    </div>
+  </section>
+
+
+  <!-- ============ ESTUDIO RÁPIDO ============ -->
+  <section class="pantalla provisional" id="estudio-rapido" aria-labelledby="t-estudio-rapido">
+    <a class="volver" href="#estudiar"><svg><use href="#i-atras"/></svg>Actividades</a>
+    <div class="rapido">
+      <h2 id="t-estudio-rapido" tabindex="-1">Estudio rápido</h2>
+      <div id="rapido-elegir">
+        <p>Elige una guía de tu biblioteca para estudiar con 25 preguntas.</p>
+        <label for="rapido-archivo">Guía de estudio</label>
+        <select id="rapido-archivo"><option value="">Cargando guías…</option></select>
+        <p class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.</p>
+        <button type="button" id="rapido-generar" class="boton b-verde" disabled>Comenzar estudio rápido</button>
+      </div>
+      <p id="rapido-estado" class="estado-rapido" role="status" aria-live="polite"></p>
+      <div id="rapido-ejercicio" hidden>
+        <p id="rapido-contador" class="rapido-progreso"></p>
+        <div class="rapido-pregunta">
+          <h3 id="rapido-enunciado"></h3>
+          <div id="rapido-opciones" role="group" aria-label="Alternativas"></div>
+        </div>
+        <p class="rapido-nota">Las respuestas pendientes se conservan solo en este navegador. No se envían a calificar hasta finalizar.</p>
+        <div class="rapido-acciones">
+          <button type="button" id="rapido-anterior" class="boton b-verde">Anterior</button>
+          <button type="button" id="rapido-siguiente" class="boton b-verde">Siguiente</button>
+        </div>
+        <button type="button" id="rapido-finalizar" class="boton b-verde" hidden>Finalizar y calificar</button>
+      </div>
+      <div id="rapido-resultado" class="rapido-resultado" hidden aria-live="polite"></div>
     </div>
   </section>
 
@@ -426,12 +478,13 @@
 <script>
   // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
   (function () {
-    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'biblioteca', 'progreso', 'acceso'];
+    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'biblioteca', 'progreso', 'acceso'];
     var titulos = {
       inicio: 'Estudia+',
       subir: 'Subir archivo · Estudia+',
       estudiar: 'Comenzar a estudiar · Estudia+',
       'preguntas-app': 'Preguntas a la app · Estudia+',
+      'estudio-rapido': 'Estudio rápido · Estudia+',
       biblioteca: 'Biblioteca de libros · Estudia+',
       progreso: 'Mi progreso · Estudia+',
       acceso: 'Acceso · Estudia+'
@@ -485,6 +538,13 @@
     function estado(sesion) {
       sesionActual = sesion || null;
       archivosCambioSesion();
+      if (typeof erActual !== 'undefined' && erActual && (!sesion || !sesion.user || erActual.usuario !== sesion.user.id)) {
+        erActual = null;
+        erEjercicio.hidden = true; erResultado.hidden = true; erElegir.hidden = false;
+        erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
+        erGenerar.disabled = true;
+      }
+      if (typeof erPrepararLista === 'function' && location.hash === '#estudio-rapido') erPrepararLista();
       var correo = sesion && sesion.user && sesion.user.email;
       opciones.hidden = !!correo;
       formulario.hidden = !!correo || modoRegistro;
@@ -812,6 +872,197 @@
     }
     window.addEventListener('hashchange', function () { if (location.hash === '#biblioteca') cargarArchivos(); });
     if (location.hash === '#biblioteca') cargarArchivos();
+
+
+    // ===== Estudio rápido: conexión con la Edge Function independiente =====
+    var erSeleccion = document.getElementById('rapido-archivo');
+    var erGenerar = document.getElementById('rapido-generar');
+    var erEstado = document.getElementById('rapido-estado');
+    var erElegir = document.getElementById('rapido-elegir');
+    var erEjercicio = document.getElementById('rapido-ejercicio');
+    var erResultado = document.getElementById('rapido-resultado');
+    var erContador = document.getElementById('rapido-contador');
+    var erEnunciado = document.getElementById('rapido-enunciado');
+    var erOpciones = document.getElementById('rapido-opciones');
+    var erAnterior = document.getElementById('rapido-anterior');
+    var erSiguiente = document.getElementById('rapido-siguiente');
+    var erFinalizar = document.getElementById('rapido-finalizar');
+    var erOcupado = false, erConsulta = 0, erCargando = false, erActual = null;
+    function erVisible() { return location.hash === '#estudio-rapido'; }
+    function erMensaje(texto, error) { erEstado.textContent = texto; erEstado.className = 'estado-rapido' + (error ? ' error' : ''); }
+    function erAlmacen(userId, materialId) { return 'estudia-rapido-borrador:' + userId + ':' + materialId; }
+    function erGuardar() {
+      if (!erActual) return;
+      try {
+        localStorage.setItem(erAlmacen(erActual.usuario, erActual.material_id), JSON.stringify({respuestas:erActual.respuestas,indice:erActual.indice}));
+      } catch (_) { erMensaje('No se pudo guardar el avance local. Mantén abierta esta pantalla para conservarlo.', true); }
+    }
+    function erRestaurar() {
+      if (!erActual) return;
+      try {
+        var valor = JSON.parse(localStorage.getItem(erAlmacen(erActual.usuario, erActual.material_id)) || 'null');
+        if (valor && Array.isArray(valor.respuestas) && valor.respuestas.length === 25 &&
+            valor.respuestas.every(function(n){return n === null || (Number.isInteger(n) && n >= 0 && n <= 3)})) {
+          erActual.respuestas = valor.respuestas;
+          if (Number.isInteger(valor.indice) && valor.indice >= 0 && valor.indice < 25) erActual.indice = valor.indice;
+        }
+      } catch (_) { /* borrador inexistente o ilegible: comenzar sin respuestas */ }
+    }
+    function erPintar() {
+      if (!erActual || !erActual.preguntas.length) return;
+      var i = erActual.indice, p = erActual.preguntas[i];
+      erContador.textContent = 'Pregunta ' + (i + 1) + ' de 25 · ' + erActual.respuestas.filter(function(x){return x !== null}).length + ' respondidas';
+      erEnunciado.textContent = p.enunciado;
+      erOpciones.replaceChildren();
+      p.alternativas.forEach(function(texto, numero) {
+        var etiqueta = document.createElement('label'); etiqueta.className = 'rapido-opcion';
+        var radio = document.createElement('input'); radio.type = 'radio'; radio.name = 'rapido-respuesta'; radio.value = String(numero);
+        radio.checked = erActual.respuestas[i] === numero; radio.disabled = erOcupado;
+        radio.addEventListener('change', function() {
+          if (!erActual || erOcupado) return;
+          erActual.respuestas[i] = numero;
+          erGuardar(); erContador.textContent = 'Pregunta ' + (i+1) + ' de 25 · ' + erActual.respuestas.filter(function(x){return x !== null}).length + ' respondidas';
+        });
+        var t = document.createElement('span'); t.textContent = texto;
+        etiqueta.appendChild(radio); etiqueta.appendChild(t); erOpciones.appendChild(etiqueta);
+      });
+      erAnterior.disabled = erOcupado || i === 0;
+      erSiguiente.hidden = i === 24;
+      erSiguiente.disabled = erOcupado;
+      erFinalizar.hidden = i !== 24;
+      erFinalizar.disabled = erOcupado;
+    }
+    function erCambiarPaso(delta) {
+      if (!erActual || erOcupado) return;
+      var nuevo = erActual.indice + delta;
+      if (nuevo < 0 || nuevo > 24) return;
+      erActual.indice = nuevo; erGuardar(); erPintar();
+      if (erVisible()) window.scrollTo(0, 0);
+    }
+    erAnterior.addEventListener('click', function(){ erCambiarPaso(-1); });
+    erSiguiente.addEventListener('click', function(){ erCambiarPaso(1); });
+    function erVerResultado(puntaje, total, previo) {
+      erEjercicio.hidden = true; erElegir.hidden = true; erResultado.hidden = false;
+      erResultado.replaceChildren();
+      var titulo = document.createElement('p'); titulo.textContent = previo ? 'Este cuestionario ya fue calificado.' : 'Estudio rápido finalizado.';
+      var nota = document.createElement('strong'); nota.textContent = puntaje + ' de ' + total + ' respuestas correctas';
+      erResultado.appendChild(titulo); erResultado.appendChild(nota);
+      erMensaje('', false);
+    }
+    async function erResultadoPrevio(materialId) {
+      var r = await cliente.from('resultados').select('puntaje,detalle').eq('material_id', materialId)
+        .eq('detalle->>actividad', 'estudio_rapido').limit(1).maybeSingle();
+      if (r.error) throw r.error;
+      return r.data;
+    }
+    async function erPrepararLista() {
+      if (!erVisible() || erCargando || erOcupado || erActual) return;
+      erCargando = true; erSeleccion.disabled = true; erGenerar.disabled = true;
+      erMensaje('Cargando guías…', false);
+      try {
+        var u = await usuarioValido();
+        if (!u) {
+          erSeleccion.replaceChildren(new Option('Inicia sesión para continuar', ''));
+          erMensaje('Necesitas iniciar sesión para usar Estudio rápido.', true);
+          return;
+        }
+        var r = await cliente.from('archivos_usuario').select('id,nombre_original,tipo,tamano,estado')
+          .eq('estado','activo').order('creado_en',{ascending:false});
+        if (r.error) throw r.error;
+        // Backend acepta PDF/JPG/JPEG/PNG hasta 8 MB, no DOC ni DOCX todavía.
+        var compatibles = (r.data || []).filter(function(a){
+          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= 8*1024*1024;
+        });
+        var anterior = erSeleccion.value;
+        erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
+        compatibles.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
+        if (compatibles.some(function(a){return a.id === anterior})) erSeleccion.value = anterior;
+        erSeleccion.disabled = !compatibles.length;
+        erGenerar.disabled = !erSeleccion.value;
+        erMensaje(compatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG o PNG de hasta 8 MB desde «Subir archivo».', !compatibles.length);
+      } catch (e) {
+        erMensaje(errSesion(e) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudieron cargar tus guías. Vuelve a entrar a esta pantalla.', true);
+      } finally { erCargando = false; }
+    }
+    erSeleccion.addEventListener('change', function(){ erGenerar.disabled = erOcupado || !erSeleccion.value; });
+    function erErrorFuncion(error) {
+      var status = error && error.context && error.context.status;
+      if (status === 401 || status === 403) return 'La sesión expiró o no tiene permiso. Inicia sesión de nuevo.';
+      if (status === 413) return 'La guía supera el tamaño admitido para Estudio rápido (8 MB).';
+      if (status === 415) return 'Este formato aún no es compatible. Usa PDF, JPG o PNG.';
+      if (status === 422) return 'No fue posible generar 25 preguntas válidas con esta guía.';
+      if (status === 429) return 'Hay demasiadas solicitudes. Inténtalo más tarde.';
+      if (status === 409) return 'Este cuestionario ya fue calificado.';
+      return 'No se pudo completar la solicitud. Revisa la conexión o inténtalo de nuevo.';
+    }
+    erGenerar.addEventListener('click', async function() {
+      if (erOcupado || !erSeleccion.value || !cliente) return;
+      var id = erSeleccion.value, operacion = ++erConsulta;
+      erOcupado = true; erGenerar.disabled = true; erSeleccion.disabled = true;
+      erMensaje('Preparando 25 preguntas. Puede tardar un momento; no cierres la página.', false);
+      try {
+        var u = await usuarioValido();
+        if (!u) { erMensaje('Necesitas iniciar sesión para continuar.', true); return; }
+        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'generar',archivo_id:id}});
+        if (r.error) { erMensaje(erErrorFuncion(r.error), true); return; }
+        var d = r.data;
+        if (!d || !Array.isArray(d.preguntas) || d.preguntas.length !== 25 || typeof d.material_id !== 'string' ||
+          !d.preguntas.every(function(p){return typeof p.enunciado === 'string' && Array.isArray(p.alternativas) && p.alternativas.length === 4 && p.alternativas.every(function(a){return typeof a === 'string'}) && !Object.prototype.hasOwnProperty.call(p,'correcta')})) {
+          erMensaje('El servicio devolvió preguntas en un formato inesperado.', true); return;
+        }
+        erActual = {usuario:u.id, material_id:d.material_id, preguntas:d.preguntas, indice:0, respuestas:Array(25).fill(null)};
+        var previo = await erResultadoPrevio(d.material_id);
+        if (previo) {
+          erVerResultado(previo.puntaje, (previo.detalle && previo.detalle.total) || 25, true);
+          return;
+        }
+        erRestaurar(); erElegir.hidden = true; erEjercicio.hidden = false; erResultado.hidden = true;
+        erMensaje(d.reutilizado ? 'Cuestionario guardado recuperado.' : 'Se generaron y guardaron 25 preguntas.', false);
+        erPintar();
+      } catch(e) {
+        erMensaje(errSesion(e) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudo iniciar el cuestionario. Inténtalo de nuevo.', true);
+      } finally {
+        if (operacion === erConsulta) {
+          erOcupado = false; erSeleccion.disabled = false;
+          erGenerar.disabled = !erSeleccion.value;
+          if (erActual && !erEjercicio.hidden) erPintar();
+        }
+      }
+    });
+    erFinalizar.addEventListener('click', async function() {
+      if (!erActual || erOcupado) return;
+      var faltan = erActual.respuestas.findIndex(function(x){return x === null});
+      if (faltan !== -1) {
+        erActual.indice = faltan; erGuardar(); erPintar();
+        erMensaje('Responde las 25 preguntas antes de finalizar. Te mostramos la primera que falta.', true);
+        return;
+      }
+      if (!window.confirm('¿Finalizar Estudio rápido y enviar las 25 respuestas a calificar? Solo se permite una calificación por cuestionario.')) return;
+      erOcupado = true; erFinalizar.disabled = true; erAnterior.disabled = true;
+      erMensaje('Guardando y calificando tus respuestas…', false);
+      try {
+        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'calificar',material_id:erActual.material_id,respuestas:erActual.respuestas}});
+        if (r.error) {
+          if (r.error.context && r.error.context.status === 409) {
+            var existente = await erResultadoPrevio(erActual.material_id);
+            if (existente) { erVerResultado(existente.puntaje, (existente.detalle && existente.detalle.total) || 25, true); return; }
+          }
+          erMensaje(erErrorFuncion(r.error), true); return;
+        }
+        if (!r.data || typeof r.data.puntaje !== 'number' || r.data.total !== 25) {
+          erMensaje('No se pudo confirmar el resultado. Verifícalo antes de enviar otra vez.', true); return;
+        }
+        try { localStorage.removeItem(erAlmacen(erActual.usuario, erActual.material_id)); } catch (_) {}
+        erVerResultado(r.data.puntaje, r.data.total, false);
+      } catch (e) {
+        erMensaje('No se pudo confirmar la calificación. Revisa la conexión antes de reintentar.', true);
+      } finally {
+        erOcupado = false;
+        if (!erEjercicio.hidden) erPintar();
+      }
+    });
+    window.addEventListener('hashchange', function(){if (erVisible()) erPrepararLista();});
+    if (erVisible()) erPrepararLista();
 
     window.addEventListener('hashchange', mostrar);
     mostrar();
