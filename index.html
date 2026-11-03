@@ -228,6 +228,9 @@
   .rapido-resultado strong { font-size:1.5rem; }
   .rapido-resultado .rapido-salir { background:#fff; color:var(--texto); border:2px solid var(--verde); }
   .rapido-revision { margin:18px 0; text-align:left; }
+  /* Modo de revisión: mostrar solo los errores y el botón de regreso. */
+  .rapido-resultado.rapido-solo-errores > :not(.rapido-revision):not(.rapido-revisar-boton) { display:none!important; }
+  .rapido-revisar-boton { margin-top:12px; }
   .rapido-revision h3 { font-size:1.08rem; margin:0 0 10px; }
   .rapido-error { border:1px solid #dce9e3; border-radius:12px; padding:12px; margin:10px 0; }
   .rapido-error p { margin:6px 0; overflow-wrap:anywhere; }
@@ -1139,13 +1142,29 @@
     function erVerResultado(puntaje, total, previo, correcciones) {
       erEjercicio.hidden = true; erElegir.hidden = true; erDecision.hidden=true; erResultado.hidden = false;
       erResultado.replaceChildren();
+      erResultado.classList.remove('rapido-solo-errores');
       var titulo = document.createElement('p'); titulo.textContent = previo ? 'Este cuestionario ya fue calificado.' : 'Estudio rápido finalizado.';
       var nota = document.createElement('strong'); nota.textContent = puntaje + ' de ' + total + ' respuestas correctas';
       erResultado.appendChild(titulo); erResultado.appendChild(nota);
       var porcentaje = document.createElement('p');
       porcentaje.textContent = 'Porcentaje: ' + Math.round(puntaje * 100 / total) + '% · ' + (total - puntaje) + ' incorrectas';
       erResultado.appendChild(porcentaje);
+      var revisar = document.createElement('button');
+      revisar.type = 'button'; revisar.className = 'boton b-verde rapido-revisar-boton';
+      revisar.textContent = 'Revisar solo errores';
+      revisar.setAttribute('aria-expanded', 'false');
+      revisar.addEventListener('click', function() {
+        var soloErrores = !erResultado.classList.contains('rapido-solo-errores');
+        erResultado.classList.toggle('rapido-solo-errores', soloErrores);
+        revision.hidden = !soloErrores;
+        revisar.textContent = soloErrores ? 'Volver al resultado' : 'Revisar solo errores';
+        revisar.setAttribute('aria-expanded', String(soloErrores));
+        sonidoTono('click');
+        revisar.scrollIntoView({block:'nearest'});
+      });
+      erResultado.appendChild(revisar);
       var revision = document.createElement('div');
+      revision.hidden = true;
       revision.className = 'rapido-revision';
       var encabezado = document.createElement('h3');
       encabezado.textContent = 'Revisión de respuestas incorrectas';
