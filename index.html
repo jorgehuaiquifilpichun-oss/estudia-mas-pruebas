@@ -218,6 +218,7 @@
   .rapido-nota { font-size:.86rem; color:var(--texto-suave); }
   .rapido-resultado { padding:18px; background:#fff; border-radius:18px; margin-top:16px; text-align:center; }
   .rapido-resultado strong { font-size:1.5rem; }
+  .rapido-resultado .rapido-salir { background:#fff; color:var(--texto); border:2px solid var(--verde); }
   .rapido-revision { margin:18px 0; text-align:left; }
   .rapido-revision h3 { font-size:1.08rem; margin:0 0 10px; }
   .rapido-error { border:1px solid #dce9e3; border-radius:12px; padding:12px; margin:10px 0; }
@@ -993,6 +994,19 @@
       // No desplazar la página completa, que ahora ocupa el alto de la pantalla.
       erOpciones.parentElement.scrollTop = 0;
     }
+    // Al salir de una prueba ya calificada, liberar la guía seleccionada.
+    // No borrar resultados de Supabase ni avances de pruebas inconclusas.
+    function erCerrarPruebaTerminada() {
+      if (erResultado.hidden || erOcupado) return;
+      erActual = null;
+      erResultado.hidden = true;
+      erResultado.replaceChildren();
+      erEjercicio.hidden = true;
+      erElegir.hidden = false;
+      erSeleccion.value = '';
+      erGenerar.disabled = true;
+      erMensaje('', false);
+    }
     erAnterior.addEventListener('click', function(){ erCambiarPaso(-1); });
     erSiguiente.addEventListener('click', function(){ erCambiarPaso(1); });
     function erVerResultado(puntaje, total, previo, correcciones) {
@@ -1051,6 +1065,15 @@
         erPintar(); erOpciones.parentElement.scrollTop = 0;
       });
       erResultado.appendChild(reiniciar);
+      var salir = document.createElement('button');
+      salir.type = 'button'; salir.className = 'boton b-verde rapido-salir';
+      salir.textContent = 'Salir de la prueba';
+      salir.addEventListener('click', function() {
+        if (erOcupado) return;
+        erCerrarPruebaTerminada();
+        location.hash = '#estudiar';
+      });
+      erResultado.appendChild(salir);
       // Leer el historial desde la base de datos: nunca calcularlo solo con el navegador.
       erMostrarHistorial(erActual && erActual.material_id);
       erMensaje('', false);
@@ -1207,7 +1230,11 @@
         if (!erEjercicio.hidden) erPintar();
       }
     });
-    window.addEventListener('hashchange', function(){if (erVisible()) erPrepararLista();});
+    window.addEventListener('hashchange', function(){
+      // Volver desde la pantalla final también permite elegir otra guía al regresar.
+      if (!erVisible()) erCerrarPruebaTerminada();
+      else erPrepararLista();
+    });
     if (erVisible()) erPrepararLista();
 
     window.addEventListener('hashchange', mostrar);
