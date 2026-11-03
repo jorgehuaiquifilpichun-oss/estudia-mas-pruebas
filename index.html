@@ -218,6 +218,56 @@
   .rapido-nota { font-size:.86rem; color:var(--texto-suave); }
   .rapido-resultado { padding:18px; background:#fff; border-radius:18px; margin-top:16px; text-align:center; }
   .rapido-resultado strong { font-size:1.5rem; }
+  .rapido-revision { margin:18px 0; text-align:left; }
+  .rapido-revision h3 { font-size:1.08rem; margin:0 0 10px; }
+  .rapido-error { border:1px solid #dce9e3; border-radius:12px; padding:12px; margin:10px 0; }
+  .rapido-error p { margin:6px 0; overflow-wrap:anywhere; }
+  .rapido-error-enunciado { font-weight:700; }
+  .rapido-respuesta-correcta { color:#176947; font-weight:700; }
+
+  /* Cuestionario adaptable a la pantalla: hasta 480 px de ancho y 100dvh de alto.
+     Solo la tarjeta de preguntas se desplaza; la revisión final sigue libre. */
+  body:has(#estudio-rapido.activa #rapido-ejercicio:not([hidden])) {
+    height:100dvh; min-height:0; overflow:hidden; overscroll-behavior:none;
+  }
+  body:has(#estudio-rapido.activa #rapido-ejercicio:not([hidden])) .pagina {
+    height:100dvh; max-width:480px; padding:8px 12px max(8px,env(safe-area-inset-bottom,0px));
+    overflow:hidden;
+  }
+  #estudio-rapido.activa:has(#rapido-ejercicio:not([hidden])) {
+    height:100%; min-height:0; display:flex; flex-direction:column; gap:8px;
+  }
+  #estudio-rapido:has(#rapido-ejercicio:not([hidden])) > .volver {flex:none; align-self:flex-start;}
+  #estudio-rapido:has(#rapido-ejercicio:not([hidden])) .rapido {
+    flex:1; min-height:0; display:flex; flex-direction:column;
+    margin-top:0; padding:12px; overflow:hidden;
+  }
+  #estudio-rapido:has(#rapido-ejercicio:not([hidden])) .rapido h2 {
+    flex:none; font-size:clamp(1.12rem,4.8vw,1.45rem); margin:0 0 3px;
+  }
+  #estudio-rapido:has(#rapido-ejercicio:not([hidden])) .estado-rapido {
+    flex:none; min-height:0; margin:3px 0; font-size:.82rem; line-height:1.3;
+  }
+  #rapido-ejercicio:not([hidden]) {display:flex; flex-direction:column; flex:1; min-height:0; gap:7px;}
+  #rapido-ejercicio .rapido-progreso {flex:none; margin:0; font-size:.89rem;}
+  #rapido-ejercicio .rapido-pregunta {
+    flex:1; min-height:0; margin:0; padding:12px;
+    overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  #rapido-ejercicio .rapido-pregunta h3 {margin:0 0 9px; font-size:1.02rem; line-height:1.38;}
+  #rapido-ejercicio .rapido-opcion {min-height:42px; padding:9px 10px; margin:6px 0!important; line-height:1.32;}
+  #rapido-ejercicio > .rapido-nota {flex:none; margin:0; font-size:.72rem; line-height:1.25;}
+  #rapido-ejercicio .rapido-acciones {flex:none; gap:8px;}
+  #rapido-ejercicio .boton {min-height:43px; margin-top:0;}
+  #rapido-finalizar:not([hidden]) {flex:none;}
+  @media (max-height:620px) {
+    #estudio-rapido:has(#rapido-ejercicio:not([hidden])) .rapido {padding:8px 10px;}
+    #rapido-ejercicio:not([hidden]) {gap:4px;}
+    #rapido-ejercicio .rapido-pregunta {padding:9px;}
+    #rapido-ejercicio > .rapido-nota {font-size:.68rem;}
+    #rapido-ejercicio .boton {min-height:39px;}
+  }
 </style>
 </head>
 <body>
@@ -894,7 +944,7 @@
     function erGuardar() {
       if (!erActual) return;
       try {
-        localStorage.setItem(erAlmacen(erActual.usuario, erActual.material_id), JSON.stringify({respuestas:erActual.respuestas,indice:erActual.indice}));
+        localStorage.setItem(erAlmacen(erActual.usuario, erActual.material_id), JSON.stringify({respuestas:erActual.respuestas,indice:erActual.indice,intento_id:erActual.intento_id}));
       } catch (_) { erMensaje('No se pudo guardar el avance local. Mantén abierta esta pantalla para conservarlo.', true); }
     }
     function erRestaurar() {
@@ -904,6 +954,8 @@
         if (valor && Array.isArray(valor.respuestas) && valor.respuestas.length === 25 &&
             valor.respuestas.every(function(n){return n === null || (Number.isInteger(n) && n >= 0 && n <= 3)})) {
           erActual.respuestas = valor.respuestas;
+          if (typeof valor.intento_id === 'string' && /^[a-f0-9-]{36}$/i.test(valor.intento_id))
+            erActual.intento_id = valor.intento_id;
           if (Number.isInteger(valor.indice) && valor.indice >= 0 && valor.indice < 25) erActual.indice = valor.indice;
         }
       } catch (_) { /* borrador inexistente o ilegible: comenzar sin respuestas */ }
@@ -937,21 +989,98 @@
       var nuevo = erActual.indice + delta;
       if (nuevo < 0 || nuevo > 24) return;
       erActual.indice = nuevo; erGuardar(); erPintar();
-      if (erVisible()) window.scrollTo(0, 0);
+      // Al cambiar de pregunta, reiniciar solo el desplazamiento de la tarjeta.
+      // No desplazar la página completa, que ahora ocupa el alto de la pantalla.
+      erOpciones.parentElement.scrollTop = 0;
     }
     erAnterior.addEventListener('click', function(){ erCambiarPaso(-1); });
     erSiguiente.addEventListener('click', function(){ erCambiarPaso(1); });
-    function erVerResultado(puntaje, total, previo) {
+    function erVerResultado(puntaje, total, previo, correcciones) {
       erEjercicio.hidden = true; erElegir.hidden = true; erResultado.hidden = false;
       erResultado.replaceChildren();
       var titulo = document.createElement('p'); titulo.textContent = previo ? 'Este cuestionario ya fue calificado.' : 'Estudio rápido finalizado.';
       var nota = document.createElement('strong'); nota.textContent = puntaje + ' de ' + total + ' respuestas correctas';
       erResultado.appendChild(titulo); erResultado.appendChild(nota);
+      var porcentaje = document.createElement('p');
+      porcentaje.textContent = 'Porcentaje: ' + Math.round(puntaje * 100 / total) + '% · ' + (total - puntaje) + ' incorrectas';
+      erResultado.appendChild(porcentaje);
+      var revision = document.createElement('div');
+      revision.className = 'rapido-revision';
+      var encabezado = document.createElement('h3');
+      encabezado.textContent = 'Revisión de respuestas incorrectas';
+      revision.appendChild(encabezado);
+      if (Array.isArray(correcciones)) {
+        if (!correcciones.length) {
+          var perfecto = document.createElement('p');
+          perfecto.textContent = 'Todas las respuestas fueron correctas.';
+          revision.appendChild(perfecto);
+        }
+        correcciones.forEach(function(c) {
+          if (!erActual || !Number.isInteger(c.numero) || c.numero < 0 || c.numero >= 25 ||
+            !Number.isInteger(c.elegida) || c.elegida < 0 || c.elegida > 3 ||
+            !Number.isInteger(c.correcta) || c.correcta < 0 || c.correcta > 3) return;
+          var pregunta = erActual.preguntas[c.numero];
+          if (!pregunta || !Array.isArray(pregunta.alternativas)) return;
+          var item = document.createElement('div'); item.className = 'rapido-error';
+          var enunciado = document.createElement('p');
+          enunciado.className = 'rapido-error-enunciado';
+          enunciado.textContent = 'Pregunta ' + (c.numero + 1) + ': ' + pregunta.enunciado;
+          var elegida = document.createElement('p');
+          elegida.textContent = 'Tu respuesta: ' + pregunta.alternativas[c.elegida];
+          var correcta = document.createElement('p'); correcta.className = 'rapido-respuesta-correcta';
+          correcta.textContent = 'Respuesta correcta: ' + pregunta.alternativas[c.correcta];
+          item.appendChild(enunciado); item.appendChild(elegida); item.appendChild(correcta);
+          revision.appendChild(item);
+        });
+      } else {
+        var pendiente = document.createElement('p');
+        pendiente.textContent = 'No se pudo cargar la revisión. El puntaje guardado se conserva.';
+        revision.appendChild(pendiente);
+      }
+      erResultado.appendChild(revision);
+      var reiniciar = document.createElement('button');
+      reiniciar.type = 'button'; reiniciar.className = 'boton b-verde';
+      reiniciar.textContent = 'Repetir la prueba';
+      reiniciar.addEventListener('click', function() {
+        if (!erActual || erOcupado) return;
+        erActual.indice = 0; erActual.respuestas = Array(25).fill(null);
+        erActual.intento_id = crypto.randomUUID();
+        erGuardar();
+        erResultado.hidden = true; erEjercicio.hidden = false; erElegir.hidden = true;
+        erMensaje('Nuevo intento. El resultado anterior se conserva.', false);
+        erPintar(); erOpciones.parentElement.scrollTop = 0;
+      });
+      erResultado.appendChild(reiniciar);
+      // Leer el historial desde la base de datos: nunca calcularlo solo con el navegador.
+      erMostrarHistorial(erActual && erActual.material_id);
       erMensaje('', false);
     }
+    async function erMostrarHistorial(materialId) {
+      if (!materialId || !cliente) return;
+      try {
+        var r = await cliente.from('resultados').select('id,puntaje,detalle,creado_en')
+          .eq('material_id', materialId).eq('detalle->>actividad', 'estudio_rapido')
+          .order('creado_en', {ascending:false}).limit(30);
+        if (r.error || erResultado.hidden || !erActual || erActual.material_id !== materialId) return;
+        var historial = document.createElement('div');
+        var h = document.createElement('h3'); h.textContent = 'Historial de intentos';
+        historial.appendChild(h);
+        (r.data || []).forEach(function(x, i) {
+          var linea = document.createElement('p');
+          var puntos = Number(x.puntaje);
+          linea.textContent = 'Intento ' + ((r.data || []).length - i) + ': ' + puntos + '/25 (' + Math.round(100*puntos/25) + '%)';
+          historial.appendChild(linea);
+        });
+        if (r.data && r.data.length === 30) {
+          var aviso = document.createElement('p'); aviso.textContent = 'Se muestran los 30 intentos más recientes.';
+          historial.appendChild(aviso);
+        }
+        erResultado.appendChild(historial);
+      } catch (_) { /* La nota principal sigue visible si falla el historial. */ }
+    }
     async function erResultadoPrevio(materialId) {
-      var r = await cliente.from('resultados').select('puntaje,detalle').eq('material_id', materialId)
-        .eq('detalle->>actividad', 'estudio_rapido').limit(1).maybeSingle();
+      var r = await cliente.from('resultados').select('id,puntaje,detalle').eq('material_id', materialId)
+        .eq('detalle->>actividad', 'estudio_rapido').order('creado_en', {ascending:false}).limit(1).maybeSingle();
       if (r.error) throw r.error;
       return r.data;
     }
@@ -1010,13 +1139,25 @@
           !d.preguntas.every(function(p){return typeof p.enunciado === 'string' && Array.isArray(p.alternativas) && p.alternativas.length === 4 && p.alternativas.every(function(a){return typeof a === 'string'}) && !Object.prototype.hasOwnProperty.call(p,'correcta')})) {
           erMensaje('El servicio devolvió preguntas en un formato inesperado.', true); return;
         }
-        erActual = {usuario:u.id, material_id:d.material_id, preguntas:d.preguntas, indice:0, respuestas:Array(25).fill(null)};
+        erActual = {usuario:u.id, material_id:d.material_id, preguntas:d.preguntas,
+          indice:0, respuestas:Array(25).fill(null), intento_id:null};
+        erRestaurar();
+        // Un borrador de reintento tiene su identificador, aunque aún no haya respuestas.
+        var reintentoPendiente = !!erActual.intento_id;
         var previo = await erResultadoPrevio(d.material_id);
-        if (previo) {
-          erVerResultado(previo.puntaje, (previo.detalle && previo.detalle.total) || 25, true);
+        if (previo && !reintentoPendiente) {
+          var correccionesPrevias = null;
+          try {
+            var revision = await cliente.functions.invoke('estudio-rapido',
+              {body:{accion:'revisar',resultado_id:previo.id}});
+            if (!revision.error && revision.data && Array.isArray(revision.data.correcciones))
+              correccionesPrevias = revision.data.correcciones;
+          } catch (_) { /* Mostrar de todos modos la nota anterior. */ }
+          erVerResultado(Number(previo.puntaje), (previo.detalle && previo.detalle.total) || 25,
+            true, correccionesPrevias);
           return;
         }
-        erRestaurar(); erElegir.hidden = true; erEjercicio.hidden = false; erResultado.hidden = true;
+        erElegir.hidden = true; erEjercicio.hidden = false; erResultado.hidden = true;
         erMensaje(d.reutilizado ? 'Cuestionario guardado recuperado.' : 'Se generaron y guardaron 25 preguntas.', false);
         erPintar();
       } catch(e) {
@@ -1037,15 +1178,19 @@
         erMensaje('Responde las 25 preguntas antes de finalizar. Te mostramos la primera que falta.', true);
         return;
       }
-      if (!window.confirm('¿Finalizar Estudio rápido y enviar las 25 respuestas a calificar? Solo se permite una calificación por cuestionario.')) return;
+      if (!window.confirm('¿Finalizar Estudio rápido y guardar este intento? Tus resultados anteriores se conservarán.')) return;
+      if (!erActual.intento_id) {
+        erActual.intento_id = crypto.randomUUID();
+        erGuardar();
+      }
       erOcupado = true; erFinalizar.disabled = true; erAnterior.disabled = true;
       erMensaje('Guardando y calificando tus respuestas…', false);
       try {
-        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'calificar',material_id:erActual.material_id,respuestas:erActual.respuestas}});
+        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'calificar',material_id:erActual.material_id,intento_id:erActual.intento_id,respuestas:erActual.respuestas}});
         if (r.error) {
           if (r.error.context && r.error.context.status === 409) {
-            var existente = await erResultadoPrevio(erActual.material_id);
-            if (existente) { erVerResultado(existente.puntaje, (existente.detalle && existente.detalle.total) || 25, true); return; }
+            erMensaje('Este intento ya fue registrado. Vuelve a entrar para consultar el resultado.', true);
+            return;
           }
           erMensaje(erErrorFuncion(r.error), true); return;
         }
@@ -1053,7 +1198,8 @@
           erMensaje('No se pudo confirmar el resultado. Verifícalo antes de enviar otra vez.', true); return;
         }
         try { localStorage.removeItem(erAlmacen(erActual.usuario, erActual.material_id)); } catch (_) {}
-        erVerResultado(r.data.puntaje, r.data.total, false);
+        erVerResultado(r.data.puntaje, r.data.total, false,
+          Array.isArray(r.data.correcciones) ? r.data.correcciones : null);
       } catch (e) {
         erMensaje('No se pudo confirmar la calificación. Revisa la conexión antes de reintentar.', true);
       } finally {
