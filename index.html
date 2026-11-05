@@ -304,6 +304,91 @@
     #rapido-ejercicio > .rapido-nota {font-size:.68rem;}
     #rapido-ejercicio .boton {min-height:39px;}
   }
+
+  /* ===== Biblioteca rediseñada (solo presentación) ===== */
+  body:has(#biblioteca.activa){background:linear-gradient(180deg,#f1eefc 0%,#eaf3ff 55%,#f6faff 100%)}
+  body:has(#biblioteca.activa) .pagina,body:has(#preguntas-app.activa) .pagina,body:has(#progreso.activa) .pagina,body:has(#acceso.activa) .pagina{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  body:has(#biblioteca.activa) .pagina{max-width:480px;padding-left:12px;padding-right:12px}
+  #biblioteca{min-height:calc(100dvh - 120px)}
+  .bib-cab{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px}
+  .bib-atras{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--texto);text-decoration:none}
+  .bib-atras svg{width:26px;height:26px}
+  .bib-marca{font-weight:800;font-size:1.7rem;letter-spacing:-.03em;color:#131c3d}
+  .bib-marca span{color:#1a6dff}
+  .bib-titular{display:flex;align-items:center;gap:6px;margin-top:2px}
+  .bib-titular svg{flex:none;width:clamp(74px,22vw,104px);height:auto;filter:drop-shadow(0 6px 8px rgba(80,100,180,.2))}
+  .bib-titular h2{margin:0;font-size:clamp(2.1rem,10.5vw,3rem);line-height:1;font-weight:800;letter-spacing:-.035em;color:#0d1240}
+  .bib-sub{margin:2px 0 14px;text-align:right;color:var(--texto-suave);font-size:clamp(.82rem,3.4vw,.98rem)}
+  .bib-buscar{display:flex;gap:10px;align-items:center}
+  .bib-campo{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:50px;padding:0 14px;border-radius:26px;background:#fff;box-shadow:0 6px 18px rgba(90,110,170,.14)}
+  .bib-campo svg{width:22px;height:22px;flex:none;color:#1b2550}
+  .bib-campo input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:1rem;color:var(--texto);outline:0;padding:0}
+  .bib-campo:focus-within{outline:3px solid #1a6dff;outline-offset:2px}
+  .bib-filtro{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:#fff;color:#1b2550;display:grid;place-items:center;box-shadow:0 6px 18px rgba(90,110,170,.14);cursor:pointer}
+  .bib-filtro svg{width:24px;height:24px}
+  .bib-filtro[aria-expanded="true"]{background:#1a6dff;color:#fff}
+  .bib-filtro:focus-visible,.bib-flecha:focus-visible,.circ:focus-visible,.prueba:focus-visible,.bib-nav a:focus-visible{outline:3px solid #131c3d;outline-offset:2px}
+  .bib-paneles{margin-top:10px;padding:12px;border-radius:20px;background:#fff;box-shadow:0 6px 18px rgba(90,110,170,.14);display:grid;gap:8px}
+  .bib-paneles label{font-weight:700;font-size:.85rem;display:grid;gap:4px}
+  .bib-paneles select{min-height:44px;border:1px solid #a9b9d6;border-radius:12px;padding:0 10px;font:inherit;background:#fff;color:var(--texto)}
+  .bib-paneles button{min-height:44px;border-radius:12px;border:2px solid #1a6dff;background:#fff;color:#1a56c9;font:700 .92rem/1 var(--fuente);cursor:pointer}
+  .bib-estado{margin:10px 2px 0;min-height:0;font-size:.92rem;color:var(--texto-suave);text-align:center}
+  .bib-estado:empty{display:none}
+  .bib-estado.error{color:#a12b2b;font-weight:600}.bib-estado.ok{color:#1f7a5a;font-weight:600}
+  .carr{position:relative}
+  .carr-pista{position:relative;display:flex;gap:12px;align-items:center;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x pan-y}
+  .carr-pista::-webkit-scrollbar{display:none}
+  .carr-pista>*{scroll-snap-align:center;flex:none}
+  .carr-pista::before,.carr-pista::after{content:"";flex:none;width:calc(50% - var(--mitad) - 12px)}
+  .bib-circulos{--mitad:62px;padding:26px 0 22px;margin-top:6px}
+  .circ{width:124px;height:124px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:radial-gradient(circle at 30% 24%,rgba(255,255,255,.28),transparent 46%),linear-gradient(145deg,var(--c1),var(--c2));color:var(--tx);display:grid;place-items:center;padding:14px;text-align:center;font:800 1rem/1.15 var(--fuente);cursor:pointer;box-shadow:0 8px 18px var(--sombra);transform:scale(.92);transition:transform .22s ease,box-shadow .22s ease;-webkit-tap-highlight-color:transparent}
+  .circ span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;max-width:100%}
+  .circ.corto{font-size:1.12rem}.circ.largo{font-size:.86rem}
+  .circ.sel{transform:scale(1.2);box-shadow:0 0 0 5px rgba(255,255,255,.92),0 0 0 9px var(--aro),0 14px 28px var(--sombra);z-index:2}
+  .bib-flecha{position:absolute;top:50%;margin-top:-20px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:#131c3d;display:grid;place-items:center;box-shadow:0 4px 12px rgba(60,70,130,.25);cursor:pointer;z-index:3}
+  .bib-flecha svg{width:22px;height:22px}
+  .bib-flecha.izq{left:0}.bib-flecha.der{right:0}.bib-flecha.der svg{transform:scaleX(-1)}
+  .bib-flecha:disabled{opacity:.35;cursor:default}
+  .bib-puntos{display:flex;justify-content:center;gap:9px;min-height:12px;margin-top:-4px;font-size:.82rem;font-weight:700;color:var(--texto-suave)}
+  .bib-puntos i{width:11px;height:11px;border-radius:50%;background:#c3d2f7}
+  .bib-puntos i.on{background:#1a6dff}
+  .bib-card{margin-top:16px;border-radius:26px;background:#fff;box-shadow:0 8px 22px rgba(90,110,170,.16);padding:16px 14px 14px;position:relative;overflow:hidden;animation:bibEntra .25s ease}
+  @keyframes bibEntra{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .bib-card::before{content:"";position:absolute;right:-50px;top:-40px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,var(--aro) 0,transparent 68%);opacity:.75;pointer-events:none}
+  .bib-card-fila{position:relative;display:flex;gap:12px;align-items:flex-start}
+  .bib-doc{flex:none;width:58px;height:70px;border-radius:12px;background:linear-gradient(#fff,#eef1fa);border:2px solid #d5dcee;position:relative;box-shadow:0 4px 8px rgba(80,100,180,.15)}
+  .bib-doc b{position:absolute;left:-8px;right:-8px;bottom:9px;height:24px;border-radius:7px;display:grid;place-items:center;color:#fff;font:800 .82rem/1 var(--fuente);background:var(--ins,#dc2626)}
+  .bib-card-info{min-width:0;flex:1}
+  .bib-nombre{margin:0;font-weight:800;font-size:1.05rem;line-height:1.25;color:#0d1240;overflow-wrap:break-word;word-break:normal;hyphens:none}
+  .bib-meta{margin:4px 0 0;color:var(--texto-suave);font-size:.92rem}
+  .bib-acc{position:relative;display:flex;gap:10px;margin-top:14px}
+  .bib-btn{flex:1;min-height:50px;border-radius:25px;font:800 1rem/1 var(--fuente);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .bib-btn svg{width:22px;height:22px}
+  .bib-btn.abrir{border:0;color:#fff;background:linear-gradient(180deg,#2b83ff,#0a4fe0);box-shadow:0 6px 14px rgba(10,79,224,.35)}
+  .bib-btn.elim{border:2px solid #e0303b;color:#c4121f;background:#fff}
+  .bib-btn:disabled{opacity:.55;cursor:not-allowed}
+  .bib-btn:active{transform:scale(.97)}
+  .bib-pruebas{margin-top:18px;padding:16px 12px 14px;border-radius:26px;background:linear-gradient(180deg,#dff7ea,#e8f8ef);box-shadow:0 8px 22px rgba(90,110,170,.10)}
+  .bib-pruebas-cab{display:flex;gap:10px;align-items:center;padding:0 4px}
+  .bib-pruebas-cab svg{flex:none;width:44px;height:44px;color:#14a06f}
+  .bib-pruebas h2{margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em;color:#0d1240;line-height:1.1}
+  .bib-pruebas-cab p{margin:2px 0 0;color:var(--texto-suave);font-size:.9rem}
+  .bib-pruebas .carr{margin-top:10px}
+  .bib-tarjetas{--mitad:55px;padding:10px 0 12px}
+  .prueba{width:110px;min-height:98px;border-radius:24px;border:3px solid var(--borde);background:linear-gradient(160deg,#fff 0,var(--tinte) 70%);color:#0d1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center;font:800 .95rem/1.15 var(--fuente);cursor:pointer;box-shadow:0 6px 14px rgba(70,90,150,.14);transform:scale(.94);transition:transform .22s ease,box-shadow .22s ease}
+  .prueba span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;max-width:100%}
+  .prueba small{font-weight:500;font-size:.78rem;color:#33406a}
+  .prueba.sel{transform:scale(1.08);box-shadow:0 0 0 3px #fff,0 0 0 6px var(--aro),0 10px 20px rgba(70,90,150,.22)}
+  .bib-pruebas .bib-flecha{width:36px;height:36px;margin-top:-24px}
+  .bib-abrir-prueba{margin-top:6px;width:100%;color:#fff;border:0;background:linear-gradient(180deg,#1fb585,#0e8d63);box-shadow:0 6px 14px rgba(14,141,99,.3)}
+  .bib-nota{margin:8px 4px 0;font-size:.82rem;color:var(--texto-suave);text-align:center}
+  .bib-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom,0px));width:min(calc(100% - 16px),464px);z-index:20;display:none;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-radius:30px;background:rgba(255,255,255,.96);box-shadow:0 8px 26px rgba(60,70,130,.22)}
+  body:has(#biblioteca.activa) .bib-nav,body:has(#preguntas-app.activa) .bib-nav,body:has(#progreso.activa) .bib-nav,body:has(#acceso.activa) .bib-nav{display:grid}
+  .bib-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;padding:4px 2px;border-radius:24px;color:#2a3558;text-decoration:none;font:600 clamp(.72rem,3.2vw,.9rem)/1.1 var(--fuente);text-align:center}
+  .bib-nav svg{width:28px;height:28px}
+  .bib-nav a[aria-current="page"]{background:#dcebff;color:#1a56c9;font-weight:800}
+  @media (max-width:340px){.bib-card-fila{flex-direction:column}.bib-acc{flex-direction:column}}
+  @media (prefers-reduced-motion:reduce){.circ,.prueba,.bib-card{transition:none;animation:none}}
 </style>
 </head>
 <body>
@@ -322,6 +407,15 @@
     <symbol id="i-barras" viewBox="0 0 24 24"><rect x="3" y="13" width="5" height="8" rx="1.3" fill="currentColor"/><rect x="9.5" y="8" width="5" height="13" rx="1.3" fill="currentColor"/><rect x="16" y="3" width="5" height="18" rx="1.3" fill="currentColor"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.6A.6.6 0 0 1 4.8 19V16A2.5 2.5 0 0 1 4 14z" fill="currentColor"/></symbol>
     <symbol id="i-atras" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-filtro" viewBox="0 0 24 24"><path d="M4 5h16l-6.2 7.6V19l-3.6-1.8v-4.6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-papelera" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4.5h5V7M6.5 7l.9 12.5h9.2L17.5 7M10 11v5M14 11v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-libro-o" viewBox="0 0 24 24"><path d="M2.5 5.5c3-1.2 6.3-1 9.5.8 3.2-1.8 6.5-2 9.5-.8v13c-3-1.2-6.3-1-9.5.8-3.2-1.8-6.5-2-9.5-.8z M12 6.3v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-prueba" viewBox="0 0 24 24"><rect x="4.5" y="4" width="15" height="17.5" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="8.5" y="2.4" width="7" height="3.4" rx="1.3" fill="#fff" stroke="currentColor" stroke-width="1.8"/><path d="m8 11 1.2 1.2L11.2 10M8 16l1.2 1.2L11.2 15M13 11h3.5M13 16h3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-casa" viewBox="0 0 24 24"><path d="M3.5 11 12 3.8 20.5 11M5.5 9.6V20h13V9.6M10 20v-5.5h4V20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chat-o" viewBox="0 0 24 24"><path d="M4.5 6.5A2.5 2.5 0 0 1 7 4h6M20 11v3.5a2.5 2.5 0 0 1-2.5 2.5H10l-4.2 3.4V17A2.5 2.5 0 0 1 4.5 14.5v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 2.5v5M15.5 5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="i-barras-o" viewBox="0 0 24 24"><rect x="3.5" y="12" width="4.5" height="8" rx="1.4" fill="none" stroke="currentColor" stroke-width="2"/><rect x="9.8" y="7" width="4.5" height="13" rx="1.4" fill="none" stroke="currentColor" stroke-width="2"/><rect x="16" y="3" width="4.5" height="17" rx="1.4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-persona" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c.6-4 3.5-6 7.5-6s6.9 2 7.5 6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
   
     <linearGradient id="g-azul" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ec0ff"/><stop offset="1" stop-color="#3f86ee"/></linearGradient>
     <linearGradient id="g-azulc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f93f5"/><stop offset="1" stop-color="#3b7fe8"/></linearGradient>
@@ -509,20 +603,55 @@
   </section>
 
   <section class="pantalla provisional" id="biblioteca" aria-labelledby="t-biblioteca">
-    <a class="volver" href="#inicio"><svg><use href="#i-atras"/></svg>Inicio</a>
-    <div class="archivos" style="background:var(--lila-azulado-pastel)">
-      <svg viewBox="0 0 280 220" aria-hidden="true"><use href="#ic-biblio"/></svg>
-      <h2 id="t-biblioteca" tabindex="-1">Biblioteca de libros</h2>
-      <p>Tus guías subidas. Solo tú puedes verlas.</p>
-      <p class="estado-arch" id="estado-biblioteca" role="status" aria-live="polite"></p>
-      <ul class="lista-arch" id="lista-archivos"></ul>
-      <section class="biblio-pruebas" aria-labelledby="titulo-pruebas-guardadas">
-        <h3 id="titulo-pruebas-guardadas">Mis pruebas</h3>
-        <p class="rapido-nota">Pruebas publicadas para tu uso personal. Se conservan aunque elimines el documento original.</p>
-        <p id="estado-pruebas-guardadas" class="estado-arch" role="status"></p>
-        <ul class="lista-arch" id="lista-pruebas-guardadas"></ul>
-      </section>
+    <div class="bib-cab">
+      <a class="bib-atras" href="#inicio" aria-label="Volver al inicio"><svg aria-hidden="true"><use href="#i-atras"/></svg></a>
+      <span class="bib-marca" aria-hidden="true">Estudia<span>+</span></span>
     </div>
+    <div class="bib-titular">
+      <svg viewBox="0 0 280 220" aria-hidden="true"><use href="#ic-biblio"/></svg>
+      <h2 id="t-biblioteca" tabindex="-1">Biblioteca</h2>
+    </div>
+    <p class="bib-sub">Tus guías y documentos. Solo tú puedes verlos.</p>
+
+    <div class="bib-buscar">
+      <label class="bib-campo"><svg aria-hidden="true"><use href="#i-lupa"/></svg>
+        <input id="bib-q" type="search" placeholder="Buscar en mi biblioteca..." autocomplete="off" aria-label="Buscar en mi biblioteca"></label>
+      <button type="button" class="bib-filtro" id="bib-filtro" aria-expanded="false" aria-controls="bib-paneles" aria-label="Filtros"><svg aria-hidden="true"><use href="#i-filtro"/></svg></button>
+    </div>
+    <div class="bib-paneles" id="bib-paneles" hidden>
+      <label>Tipo de archivo<select id="bib-f-tipo"><option value="todos">Todos</option><option value="pdf">PDF</option><option value="word">Word (DOC, DOCX)</option><option value="img">Imagen (JPG, PNG)</option></select></label>
+      <label>Fecha de incorporación<select id="bib-f-fecha"><option value="todas">Cualquier fecha</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="365">Últimos 12 meses</option></select></label>
+      <label>Orden<select id="bib-f-orden"><option value="recientes">Más recientes primero</option><option value="antiguos">Más antiguos primero</option><option value="az">Alfabético (A–Z)</option></select></label>
+      <button type="button" id="bib-f-limpiar">Quitar filtros</button>
+    </div>
+
+    <p class="bib-estado" id="estado-biblioteca" role="status" aria-live="polite"></p>
+    <div id="bib-zona" hidden>
+      <div class="carr" role="group" aria-label="Carrusel de guías">
+        <button type="button" class="bib-flecha izq" id="bib-prev" aria-label="Guía anterior"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+        <div class="carr-pista bib-circulos" id="lista-archivos" tabindex="0"></div>
+        <button type="button" class="bib-flecha der" id="bib-next" aria-label="Guía siguiente"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+      </div>
+      <div class="bib-puntos" id="bib-puntos" aria-hidden="true"></div>
+      <article class="bib-card" id="bib-card" aria-live="polite"></article>
+    </div>
+
+    <section class="bib-pruebas" aria-labelledby="titulo-pruebas-guardadas">
+      <div class="bib-pruebas-cab">
+        <svg aria-hidden="true"><use href="#i-prueba"/></svg>
+        <div><h2 id="titulo-pruebas-guardadas">Mis pruebas</h2><p>Pruebas publicadas para tu uso personal.</p></div>
+      </div>
+      <p id="estado-pruebas-guardadas" class="bib-estado" role="status"></p>
+      <div id="bp-zona" hidden>
+        <div class="carr" role="group" aria-label="Carrusel de pruebas">
+          <button type="button" class="bib-flecha izq" id="bp-prev" aria-label="Prueba anterior"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+          <div class="carr-pista bib-tarjetas" id="lista-pruebas-guardadas" tabindex="0"></div>
+          <button type="button" class="bib-flecha der" id="bp-next" aria-label="Prueba siguiente"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+        </div>
+        <button type="button" class="bib-btn bib-abrir-prueba" id="bp-abrir">Abrir prueba</button>
+        <p class="bib-nota">Se conservan aunque elimines el documento original.</p>
+      </div>
+    </section>
   </section>
 
   <section class="pantalla provisional" id="progreso" aria-labelledby="t-progreso">
@@ -564,6 +693,13 @@
   </section>
 
 </main>
+
+<nav class="bib-nav" id="bib-nav" aria-label="Navegación principal">
+  <a href="#inicio" data-t="inicio"><svg aria-hidden="true"><use href="#i-casa"/></svg>Inicio</a>
+  <a href="#preguntas-app" data-t="preguntas-app"><svg aria-hidden="true"><use href="#i-chat-o"/></svg>Consulta IA</a>
+  <a href="#progreso" data-t="progreso"><svg aria-hidden="true"><use href="#i-barras-o"/></svg>Mi progreso</a>
+  <a href="#acceso" data-t="acceso"><svg aria-hidden="true"><use href="#i-persona"/></svg>Mi cuenta</a>
+</nav>
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
@@ -831,11 +967,189 @@
     var aForm = document.getElementById('form-subir'), aInput = document.getElementById('archivo-subir');
     var aBoton = document.getElementById('boton-subir'), aTexto = document.getElementById('texto-subir');
     var aEstado = document.getElementById('estado-subida'), aIr = document.getElementById('ir-biblioteca');
-    var bEstado = document.getElementById('estado-biblioteca'), bLista = document.getElementById('lista-archivos');
+    var bEstado = document.getElementById('estado-biblioteca');
     var bpEstado = document.getElementById('estado-pruebas-guardadas');
     var bpLista = document.getElementById('lista-pruebas-guardadas');
     var bpConsulta = 0;
     var aOcupado = false, bOcupado = false, eOcupado = false, rutasActivas = [];
+
+    // ===== Biblioteca: presentación (carrusel, colores, títulos, filtros). No toca Supabase. =====
+    var BIB_PALETA = [["#e60f0f","#ad0b0b","#fff"],["#871d1d","#541212","#fff"],["#d8360e","#9e280a","#fff"],["#87321d","#541f12","#fff"],["#c0540c","#863b09","#fff"],["#87471d","#542c12","#fff"],["#9e680a","#654206","#fff"],["#87601d","#543c12","#fff"],["#f4d952","#f0cc19","#131c3d"],["#82711c","#504511","#fff"],["#e9f452","#e2f019","#131c3d"],["#707619","#40430e","#fff"],["#bef452","#a9f019","#131c3d"],["#5d7e1b","#384c10","#fff"],["#88f452","#61f019","#131c3d"],["#3e821c","#265011","#fff"],["#098613","#054d0b","#fff"],["#1c8224","#115016","#fff"],["#09863d","#054d23","#fff"],["#1c8246","#11502b","#fff"],["#088155","#05482f","#fff"],["#1c825d","#115039","#fff"],["#08816d","#05483d","#fff"],["#1c8271","#115045","#fff"],["#087d81","#054648","#fff"],["#1c7f82","#114e50","#fff"],["#0a7d99","#064e60","#fff"],["#1d7187","#124754","#fff"],["#0c78b6","#08527d","#fff"],["#1d6087","#123c54","#fff"],["#0f6eeb","#0b53b1","#fff"],["#1d4b87","#122f54","#fff"],["#2253f1","#0d39c9","#fff"],["#1d3587","#122154","#fff"],["#2229f1","#0d13c9","#fff"],["#1d2087","#121454","#fff"],["#4c22f1","#330dc9","#fff"],["#321d87","#1f1254","#fff"],["#7c22f1","#5f0dc9","#fff"],["#4b1d87","#2f1254","#fff"],["#a522f1","#840dc9","#fff"],["#601d87","#3c1254","#fff"],["#c10edd","#8f0aa3","#fff"],["#781d87","#4b1254","#fff"],["#ce0dbb","#950987","#fff"],["#871d7c","#54124e","#fff"],["#d80e8e","#9e0a68","#fff"],["#871d60","#54123c","#fff"],["#e10e4e","#a80b3a","#fff"],["#871d3c","#541226","#fff"]];
+    var bibItems = [], bibSelId = null, bibFiltro = { q: '', tipo: 'todos', fecha: 'todas', orden: 'recientes' }, bibVisibles = [];
+    var bpItems = [], bpSel = null;
+    var bibQ = document.getElementById('bib-q'), bibZona = document.getElementById('bib-zona'), bibCard = document.getElementById('bib-card');
+    var bibPista = document.getElementById('lista-archivos'), bibPuntos = document.getElementById('bib-puntos');
+    var bpZona = document.getElementById('bp-zona'), bpPista = document.getElementById('lista-pruebas-guardadas'), bpAbrir = document.getElementById('bp-abrir');
+    function bibHash(s) { var h = 2166136261; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+    // Color estable: depende solo del id real del archivo (no del orden ni de la cantidad de documentos).
+    function bibColor(id) { var p = BIB_PALETA[bibHash(id) % BIB_PALETA.length]; return { c1: p[0], c2: p[1], tx: p[2], sombra: bibRgba(p[1], .42), aro: bibRgba(p[0], .5) }; }
+    function bibRgb(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+    function bibRgba(h, a) { var c = bibRgb(h); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+    function bibMezcla(h, t) { var c = bibRgb(h); return 'rgb(' + c.map(function (v) { return Math.round(v + (255 - v) * t); }).join(',') + ')'; }
+    function bibNorm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+    var BIB_RUIDO = ['resumen', 'guia', 'apuntes', 'apunte', 'documento', 'doc', 'material', 'copia', 'final', 'scan', 'escaneado', 'pagina', 'paginas', 'pag', 'pags', 'pdf', 'docx', 'img', 'imagen', 'version', 'v'];
+    var BIB_PREP = ['de', 'del', 'en', 'y', 'e', 'a', 'para', 'por', 'con'];
+    var BIB_ENLACE = ['de', 'del', 'la', 'las', 'el', 'los', 'y', 'e', 'en', 'a', 'un', 'una', 'al', 'para', 'por', 'con'];
+    // Título corto solo a partir del nombre real: sin IA ni consultas; no inventa palabras.
+    function tituloCorto(nombre) {
+      var base = String(nombre || '').replace(/\.[A-Za-z0-9]{2,5}$/, '').replace(/[_]+/g, ' ').replace(/\s*[-–]+\s*/g, ' ').replace(/[()\[\]{}]/g, ' ').replace(/\s+/g, ' ').trim();
+      var toks = base.split(' ').filter(Boolean);
+      var sig = toks.filter(function (t) { return !/^[\d.,/]+$/.test(t) && !/^\d+[a-z]?$/i.test(t) && !/^(v|ver|copia)?\d+$/i.test(t); });
+      var util = sig.filter(function (t) { return BIB_RUIDO.indexOf(bibNorm(t)) === -1; });
+      var t = util.length ? util : (sig.length ? sig : toks);
+      while (t.length > 1 && BIB_PREP.indexOf(bibNorm(t[0])) !== -1) t.shift();
+      if (t.length > 3) { t = t.slice(0, 3); while (t.length > 1 && BIB_ENLACE.indexOf(bibNorm(t[t.length - 1])) !== -1) t.pop(); }
+      var s = t.join(' ');
+      if (s && s === s.toLowerCase()) s = s.replace(/(^|\s)(\S+)/g, function (m, a, w, pos) { return a + ((pos > 0 && BIB_ENLACE.indexOf(w) !== -1) ? w : w.charAt(0).toUpperCase() + w.slice(1)); });
+      if (s.length > 28) s = s.slice(0, 27).replace(/\s+\S*$/, '') + '…';
+      return s || String(nombre || 'Documento');
+    }
+    function bibSuave(n) { return String(n).replace(/([_\-.])/g, '$1\u200b'); }
+    function bibGrupo(tipo) { tipo = String(tipo || '').toLowerCase(); return tipo === 'pdf' ? 'pdf' : (tipo === 'doc' || tipo === 'docx') ? 'word' : 'img'; }
+    var bibReducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Carrusel genérico: scroll nativo con snap; el elemento más cercano al centro queda seleccionado.
+    function bibCarrusel(pista, prev, next, alCambiar) {
+      var st = { idx: 0, avisado: -1, tmr: 0, raf: 0 };
+      function hijos() { return pista.children; }
+      function marcar(i) {
+        var h = hijos(); st.idx = i;
+        for (var k = 0; k < h.length; k++) { var on = k === i; h[k].classList.toggle('sel', on); if (on) h[k].setAttribute('aria-current', 'true'); else h[k].removeAttribute('aria-current'); }
+        prev.disabled = i <= 0; next.disabled = i >= h.length - 1;
+      }
+      function cercano() {
+        var h = hijos(), c = pista.scrollLeft + pista.clientWidth / 2, best = 0, d = Infinity;
+        for (var k = 0; k < h.length; k++) { var dd = Math.abs(h[k].offsetLeft + h[k].offsetWidth / 2 - c); if (dd < d) { d = dd; best = k; } }
+        return best;
+      }
+      function ir(i, suave) {
+        var h = hijos(); if (!h.length) return; i = Math.max(0, Math.min(h.length - 1, i));
+        var el = h[i];
+        pista.scrollTo({ left: el.offsetLeft + el.offsetWidth / 2 - pista.clientWidth / 2, behavior: (suave && !bibReducir) ? 'smooth' : 'auto' });
+        return i;
+      }
+      function avisar(i) { if (st.avisado !== i) { st.avisado = i; alCambiar(i); } }
+      pista.addEventListener('scroll', function () {
+        if (st.raf) return;
+        st.raf = requestAnimationFrame(function () { st.raf = 0; var i = cercano(); if (i !== st.idx) marcar(i); });
+        clearTimeout(st.tmr); st.tmr = setTimeout(function () { if (hijos().length) avisar(cercano()); }, 110);
+      }, { passive: true });
+      pista.addEventListener('click', function (e) {
+        var el = e.target.closest ? e.target.closest('button') : null; if (!el || el.parentNode !== pista) return;
+        var i = Array.prototype.indexOf.call(hijos(), el); ir(i, true); marcar(i); avisar(i);
+      });
+      pista.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowLeft') { e.preventDefault(); var i = ir(st.idx - 1, true); marcar(i); avisar(i); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); var j = ir(st.idx + 1, true); marcar(j); avisar(j); }
+      });
+      prev.addEventListener('click', function () { var i = ir(st.idx - 1, true); if (i !== undefined) { marcar(i); avisar(i); } });
+      next.addEventListener('click', function () { var i = ir(st.idx + 1, true); if (i !== undefined) { marcar(i); avisar(i); } });
+      return {
+        reiniciar: function (i) { st.avisado = -1; marcar(i); requestAnimationFrame(function () { ir(i, false); marcar(i); st.avisado = i; }); },
+        actual: function () { return st.idx; }
+      };
+    }
+    var bibCarr = bibCarrusel(bibPista, document.getElementById('bib-prev'), document.getElementById('bib-next'), function (i) {
+      var a = bibVisibles[i]; if (!a) return; bibSelId = a.id; bibPintarPuntos(); bibPintarCard(a);
+    });
+    var bpCarr = bibCarrusel(bpPista, document.getElementById('bp-prev'), document.getElementById('bp-next'), function (i) {
+      var p = bpItems[i]; if (p) { bpSel = p.id; bpEtiqueta(p); }
+    });
+
+    function bibVaciar() { bibItems = []; bibVisibles = []; bibSelId = null; bibPista.replaceChildren(); bibCard.replaceChildren(); bibPuntos.replaceChildren(); bibZona.hidden = true; }
+    function bibDatos(lista) { bibItems = lista.slice(); bibRender(); }
+    function bibFiltrar() {
+      var q = bibNorm(bibFiltro.q).trim(), ahora = Date.now(), dias = bibFiltro.fecha === 'todas' ? 0 : parseInt(bibFiltro.fecha, 10);
+      var v = bibItems.filter(function (a) {
+        if (q && bibNorm(a.nombre_original).indexOf(q) === -1 && bibNorm(tituloCorto(a.nombre_original)).indexOf(q) === -1) return false;
+        if (bibFiltro.tipo !== 'todos' && bibGrupo(a.tipo) !== bibFiltro.tipo) return false;
+        if (dias && ahora - new Date(a.creado_en).getTime() > dias * 86400000) return false;
+        return true;
+      });
+      if (bibFiltro.orden === 'antiguos') v.sort(function (x, y) { return new Date(x.creado_en) - new Date(y.creado_en); });
+      else if (bibFiltro.orden === 'az') v.sort(function (x, y) { return String(x.nombre_original).localeCompare(String(y.nombre_original), 'es', { sensitivity: 'base' }); });
+      else v.sort(function (x, y) { return new Date(y.creado_en) - new Date(x.creado_en); });
+      return v;
+    }
+    function bibRender() {
+      bibVisibles = bibFiltrar();
+      bibPista.replaceChildren(); bibCard.replaceChildren();
+      if (!bibItems.length) { bibZona.hidden = true; return; }
+      if (!bibVisibles.length) { bibZona.hidden = true; msg(bEstado, 'Ningún documento coincide con la búsqueda o los filtros.', ''); return; }
+      if (bEstado.textContent === 'Ningún documento coincide con la búsqueda o los filtros.') msg(bEstado, '', '');
+      bibZona.hidden = false;
+      var idx = 0;
+      bibVisibles.forEach(function (a, k) {
+        var col = bibColor(a.id), b = document.createElement('button'), s = document.createElement('span'), t = tituloCorto(a.nombre_original);
+        b.type = 'button'; b.className = 'circ' + (t.length <= 9 ? ' corto' : (t.length > 18 ? ' largo' : ''));
+        b.style.cssText = '--c1:' + col.c1 + ';--c2:' + col.c2 + ';--tx:' + col.tx + ';--sombra:' + col.sombra + ';--aro:' + col.aro;
+        b.setAttribute('aria-label', a.nombre_original); s.textContent = t; b.appendChild(s); bibPista.appendChild(b);
+        if (a.id === bibSelId) idx = k;
+      });
+      bibSelId = bibVisibles[idx].id;
+      bibPintarPuntos(); bibPintarCard(bibVisibles[idx]);
+      bibCarr.reiniciar(idx);
+    }
+    function bibPintarPuntos() {
+      var n = bibVisibles.length, i = bibVisibles.findIndex(function (a) { return a.id === bibSelId; });
+      bibPuntos.replaceChildren();
+      if (n <= 7) { for (var k = 0; k < n; k++) { var d = document.createElement('i'); if (k === i) d.className = 'on'; bibPuntos.appendChild(d); } }
+      else bibPuntos.textContent = (i + 1) + ' / ' + n;
+    }
+    function bibPintarCard(a) {
+      var col = bibColor(a.id), g = bibGrupo(a.tipo), pend = a.estado !== 'activo';
+      bibCard.replaceChildren(); bibCard.style.setProperty('--aro', col.aro);
+      var fila = document.createElement('div'), doc = document.createElement('div'), ins = document.createElement('b'), info = document.createElement('div'), n = document.createElement('p'), m = document.createElement('p');
+      fila.className = 'bib-card-fila'; doc.className = 'bib-doc'; doc.setAttribute('aria-hidden', 'true');
+      ins.textContent = g === 'pdf' ? 'PDF' : g === 'word' ? 'DOC' : 'IMG'; doc.style.setProperty('--ins', g === 'pdf' ? '#d92d20' : g === 'word' ? '#1d5fd6' : '#119a6b'); doc.appendChild(ins);
+      info.className = 'bib-card-info'; n.className = 'bib-nombre'; n.textContent = bibSuave(a.nombre_original);
+      m.className = 'bib-meta'; m.textContent = String(a.tipo).toUpperCase() + ' · ' + tam(a.tamano) + ' · ' + new Date(a.creado_en).toLocaleDateString('es') + (pend ? ' · eliminación pendiente' : '');
+      info.appendChild(n); info.appendChild(m); fila.appendChild(doc); fila.appendChild(info); bibCard.appendChild(fila);
+      var acc = document.createElement('div'); acc.className = 'bib-acc';
+      if (!pend) {
+        var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'bib-btn abrir'; ab.innerHTML = '<svg aria-hidden="true"><use href="#i-libro-o"/></svg>Abrir';
+        ab.addEventListener('click', function () { abrirArchivo(a, ab); }); acc.appendChild(ab);
+      }
+      var el = document.createElement('button'); el.type = 'button'; el.className = 'bib-btn elim';
+      el.innerHTML = '<svg aria-hidden="true"><use href="#i-papelera"/></svg>' + (pend ? 'Reintentar eliminación' : 'Eliminar');
+      el.addEventListener('click', function () { eliminarGuia(a, el); }); acc.appendChild(el);
+      bibCard.appendChild(acc);
+    }
+    function bpVaciar() { bpItems = []; bpSel = null; bpPista.replaceChildren(); bpZona.hidden = true; }
+    function bpEtiqueta(p) { bpAbrir.textContent = 'Abrir prueba: ' + tituloCorto(p.nombre); }
+    function bpDatos(pruebas) {
+      bpVaciar(); bpItems = pruebas.slice(); if (!bpItems.length) return;
+      bpZona.hidden = false;
+      bpItems.forEach(function (p) {
+        var col = bibColor('prueba:' + p.id), b = document.createElement('button'), s = document.createElement('span'), c = document.createElement('small');
+        var nq = [p.total_preguntas, p.num_preguntas, p.cantidad_preguntas, p.preguntas_total].filter(function (x) { return typeof x === 'number' && x > 0; })[0];
+        b.type = 'button'; b.className = 'prueba'; b.style.cssText = '--tinte:' + bibMezcla(col.c1, .78) + ';--borde:' + bibMezcla(col.c1, .55) + ';--aro:' + col.aro;
+        b.setAttribute('aria-label', p.nombre);
+        s.textContent = tituloCorto(p.nombre); c.textContent = '(' + (nq || 25) + ' preguntas)'; b.appendChild(s); b.appendChild(c); bpPista.appendChild(b);
+      });
+      bpSel = bpItems[0].id; bpEtiqueta(bpItems[0]); bpCarr.reiniciar(0);
+    }
+    bpAbrir.addEventListener('click', function () {
+      var p = bpItems.filter(function (x) { return x.id === bpSel; })[0] || bpItems[bpCarr.actual()]; if (p) erAbrirPublicada(p.id, bpAbrir);
+    });
+    var bibT = 0;
+    bibQ.addEventListener('input', function () { clearTimeout(bibT); bibT = setTimeout(function () { bibFiltro.q = bibQ.value; bibRender(); }, 150); });
+    [['bib-f-tipo', 'tipo'], ['bib-f-fecha', 'fecha'], ['bib-f-orden', 'orden']].forEach(function (par) {
+      document.getElementById(par[0]).addEventListener('change', function (e) { bibFiltro[par[1]] = e.target.value; bibRender(); });
+    });
+    document.getElementById('bib-f-limpiar').addEventListener('click', function () {
+      bibFiltro = { q: '', tipo: 'todos', fecha: 'todas', orden: 'recientes' }; bibQ.value = '';
+      ['bib-f-tipo', 'bib-f-fecha', 'bib-f-orden'].forEach(function (id, k) { document.getElementById(id).selectedIndex = 0; }); bibRender();
+    });
+    var bibBtnFiltro = document.getElementById('bib-filtro'), bibPaneles = document.getElementById('bib-paneles');
+    bibBtnFiltro.addEventListener('click', function () { var ab = bibPaneles.hidden; bibPaneles.hidden = !ab; bibBtnFiltro.setAttribute('aria-expanded', String(ab)); });
+    // Barra inferior: solo marca la pestaña activa; los enlaces usan la navegación #hash existente.
+    function bibNavMarcar() {
+      var h = location.hash.replace('#', ''), t = (h === 'preguntas-app' || h === 'progreso' || h === 'acceso') ? h : 'inicio';
+      Array.prototype.forEach.call(document.querySelectorAll('#bib-nav a'), function (a) { if (a.dataset.t === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      if (h === 'biblioteca') requestAnimationFrame(function () { if (bibVisibles.length) bibCarr.reiniciar(Math.max(0, bibVisibles.findIndex(function (a) { return a.id === bibSelId; }))); });
+    }
+    window.addEventListener('hashchange', bibNavMarcar); bibNavMarcar();
     // Listado completo de nombres de la carpeta, o null si hubo error o el listado pudo quedar incompleto.
     async function listarNombres(carpeta) {
       var r = await cliente.storage.from(BUCKET).list(carpeta, { limit: 1000 });
@@ -876,7 +1190,7 @@
       var despues = await existeObjeto(ruta, true);
       return despues === 'no' ? 'borrado' : (despues === 'si' ? 'persiste' : 'incierto');
     }
-    function msg(el, t, tipo) { el.textContent = t; el.className = 'estado-arch' + (tipo ? ' ' + tipo : ''); }
+    function msg(el, t, tipo) { el.textContent = t; el.className = (el.classList.contains('bib-estado') ? 'bib-estado' : 'estado-arch') + (tipo ? ' ' + tipo : ''); }
     function tam(b) { return b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
     function errSesion(e) { var t = ((e && (e.message || '')) + ' ' + (e && e.status || '')).toLowerCase(); return /jwt|expired|401|403|not authenticated/.test(t); }
     async function usuarioValido() {
@@ -885,7 +1199,7 @@
       return (!r.error && r.data.session) ? r.data.session.user : null;
     }
     function archivosCambioSesion() {
-      if (!sesionActual) { bpConsulta++; bpLista.replaceChildren(); bpEstado.textContent='Inicia sesión para ver tus pruebas.'; bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); msg(aEstado, 'Inicia sesión para subir archivos.', ''); }
+      if (!sesionActual) { bpConsulta++; bpVaciar(); bpEstado.textContent='Inicia sesión para ver tus pruebas.'; bibVaciar(); msg(bEstado, 'Inicia sesión para ver tus guías.', ''); msg(aEstado, 'Inicia sesión para subir archivos.', ''); }
       else { msg(aEstado, '', ''); if (location.hash === '#biblioteca') cargarArchivos(); }
     }
     aForm.addEventListener('submit', async function (e) {
@@ -939,27 +1253,13 @@
       cargarPruebasPublicadas();
       try {
         var u = await usuarioValido();
-        if (!u) { bLista.innerHTML = ''; msg(bEstado, 'Inicia sesión para ver tus guías.', ''); return; }
+        if (!u) { bibVaciar(); msg(bEstado, 'Inicia sesión para ver tus guías.', ''); return; }
         var r = await cliente.from('archivos_usuario').select('id,nombre_original,ruta,tipo,tamano,creado_en,estado').order('creado_en', { ascending: false });
         if (r.error) throw r.error;
-        bLista.innerHTML = '';
         rutasActivas = r.data.filter(function (x) { return x.estado === 'activo'; }).map(function (x) { return x.ruta; });
         var pend = r.data.some(function (x) { return x.estado === 'eliminando'; });
         msg(bEstado, pend ? 'Hay guías con eliminación pendiente. Pulsa «Reintentar eliminación».' : (r.data.length ? '' : 'Aún no has subido guías.'), '');
-        r.data.forEach(function (a) {
-          var li = document.createElement('li'), n = document.createElement('p'), m = document.createElement('p'), acc = document.createElement('div');
-          n.className = 'nom'; n.textContent = a.nombre_original;
-          m.className = 'meta'; m.textContent = a.tipo.toUpperCase() + ' · ' + tam(a.tamano) + ' · ' + new Date(a.creado_en).toLocaleDateString('es') + (a.estado === 'eliminando' ? ' · eliminación pendiente' : '');
-          acc.className = 'acc';
-          if (a.estado === 'activo') {
-            var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'mini'; ab.textContent = 'Abrir';
-            ab.addEventListener('click', function () { abrirArchivo(a, ab); }); acc.appendChild(ab);
-          }
-          var el = document.createElement('button'); el.type = 'button'; el.className = 'mini peligro';
-          el.textContent = a.estado === 'activo' ? 'Eliminar' : 'Reintentar eliminación';
-          el.addEventListener('click', function () { eliminarGuia(a, el); }); acc.appendChild(el);
-          li.appendChild(n); li.appendChild(m); li.appendChild(acc); bLista.appendChild(li);
-        });
+        bibDatos(r.data);
       } catch (err) {
         msg(bEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudieron cargar tus guías. Inténtalo de nuevo.', 'error');
       } finally { bOcupado = false; }
@@ -1002,7 +1302,7 @@
     }
     async function cargarPruebasPublicadas() {
       var consulta = ++bpConsulta;
-      bpLista.replaceChildren(); bpEstado.textContent = 'Cargando pruebas…';
+      bpVaciar(); bpEstado.textContent = 'Cargando pruebas…';
       try {
         var u = await usuarioValido();
         if (!u) { if (consulta === bpConsulta) bpEstado.textContent='Inicia sesión para ver tus pruebas.'; return; }
@@ -1011,17 +1311,7 @@
         if (r.error || !r.data || !Array.isArray(r.data.pruebas)) throw r.error || new Error('Listado no disponible');
         var pruebas = r.data.pruebas;
         bpEstado.textContent = pruebas.length ? '' : 'Aún no has publicado pruebas.';
-        pruebas.forEach(function(prueba) {
-          var li = document.createElement('li'), nombre = document.createElement('p');
-          nombre.className = 'nom'; nombre.textContent = prueba.nombre;
-          var meta = document.createElement('p'); meta.className = 'meta';
-          meta.textContent = '25 preguntas · ' + new Date(prueba.creado_en).toLocaleDateString('es-CL');
-          var acciones = document.createElement('div'); acciones.className = 'acc';
-          var abrir = document.createElement('button'); abrir.type='button'; abrir.className='mini'; abrir.textContent='Abrir prueba';
-          abrir.addEventListener('click', function() { erAbrirPublicada(prueba.id, abrir); });
-          acciones.appendChild(abrir); li.appendChild(nombre); li.appendChild(meta); li.appendChild(acciones);
-          bpLista.appendChild(li);
-        });
+        bpDatos(pruebas);
       } catch (_) {
         if (consulta === bpConsulta) bpEstado.textContent = 'No se pudieron cargar las pruebas. Vuelve a entrar en Biblioteca.';
       }
