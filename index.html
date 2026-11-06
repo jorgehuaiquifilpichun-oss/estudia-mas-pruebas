@@ -214,13 +214,6 @@
   .rapido select { width:100%; min-height:46px; background:#fff; color:var(--texto); border:1px solid #a9b9d6; border-radius:12px; padding:10px; font:inherit; }
   .rapido .boton { cursor:pointer; margin-top:14px; }
   .rapido .boton:disabled { opacity:.6; cursor:not-allowed; }
-  .rapido .rapido-modo-multiple { display:flex; align-items:center; gap:9px; margin:14px 0; cursor:pointer; }
-  .rapido-modo-multiple input, .rapido-lista-multiple input { width:19px; height:19px; flex:none; accent-color:var(--verde); }
-  .rapido-lista-multiple { max-height:280px; overflow-y:auto; background:#fff; border-radius:12px; padding:6px 10px; border:1px solid #a9b9d6; }
-  .rapido .rapido-lista-multiple label { display:flex; align-items:center; gap:9px; padding:9px 3px; margin:0; font-weight:500; border-bottom:1px solid #e3e9ef; overflow-wrap:anywhere; }
-  .rapido-lista-multiple label:last-child { border-bottom:0; }
-  .rapido-lista-multiple small { display:block; color:var(--texto-suave); margin-top:3px; }
-  .rapido-lista-multiple span { min-width:0; }
   .rapido .estado-rapido { min-height:1.5em; color:var(--texto-suave); margin:12px 0 0; }
   .rapido .estado-rapido.error { color:#a12b2b; font-weight:600; }
   .rapido-pregunta { margin-top:18px; padding:18px 14px; border-radius:18px; background:#fff; }
@@ -532,8 +525,15 @@
       <h2 id="t-subir" tabindex="-1">Subir archivo</h2>
       <p>PDF, Word (DOC, DOCX), JPG o PNG. Máximo 50 MB.</p>
       <form id="form-subir" novalidate>
-        <label for="archivo-subir">Elige un archivo</label>
-        <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+        <label for="archivo-subir">Elige uno o varios archivos</label>
+        <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple>
+        <p class="rapido-nota">Para una guía con varias páginas, selecciona juntas imágenes JPG/PNG o PDF. Se guardarán como un solo PDF. Los archivos Word se suben individualmente.</p>
+        <div id="subida-grupo" hidden>
+          <label for="subida-nombre">Nombre de la guía conjunta</label>
+          <input id="subida-nombre" type="text" maxlength="190" placeholder="Por ejemplo: Ciencias Naturales" style="width:100%;min-height:46px;padding:10px;border:1px solid #a9b9d6;border-radius:12px;font:inherit">
+          <p class="rapido-nota" id="subida-resumen" aria-live="polite"></p>
+          <ol id="subida-orden" style="text-align:left;overflow-wrap:anywhere"></ol>
+        </div>
         <button class="boton b-azul" type="submit" id="boton-subir"><svg><use href="#i-subir"/></svg><span id="texto-subir">Subir archivo</span></button>
       </form>
       <p class="estado-arch" id="estado-subida" role="status" aria-live="polite"></p>
@@ -570,12 +570,6 @@
         <p>Elige una guía de tu biblioteca para estudiar con 25 preguntas.</p>
         <label for="rapido-archivo">Guía de estudio</label>
         <select id="rapido-archivo"><option value="">Cargando guías…</option></select>
-        <label class="rapido-modo-multiple"><input type="checkbox" id="rapido-multiple"> Seleccionar varias guías</label>
-        <div id="rapido-seleccion-multiple" hidden>
-          <p class="rapido-nota">Selecciona las guías de tu biblioteca que formarán una sola prueba de 25 preguntas.</p>
-          <div id="rapido-lista-multiple" class="rapido-lista-multiple" role="group" aria-label="Guías disponibles"></div>
-          <p id="rapido-total-multiple" class="rapido-progreso" aria-live="polite">0 guías · 0 MB de 30 MB</p>
-        </div>
         <p id="rapido-nota-limite" class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 30 MB. La generación necesita conexión a Internet.</p>
         <button type="button" id="rapido-generar" class="boton b-verde" disabled>Comenzar estudio rápido</button>
       </div>
@@ -719,6 +713,7 @@
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.22/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>
   // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
   (function () {
@@ -817,7 +812,7 @@
         erEjercicio.hidden = true; erResultado.hidden = true; erElegir.hidden = false;
         erDecision.hidden = true;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
-        erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
+        
         erGenerar.disabled = true;
       }
       if (typeof erPrepararLista === 'function' && location.hash === '#estudio-rapido') erPrepararLista();
@@ -980,6 +975,71 @@
     var MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
     var aForm = document.getElementById('form-subir'), aInput = document.getElementById('archivo-subir');
     var aBoton = document.getElementById('boton-subir'), aTexto = document.getElementById('texto-subir');
+    var aGrupo = document.getElementById('subida-grupo'), aNombre = document.getElementById('subida-nombre');
+    var aResumen = document.getElementById('subida-resumen'), aOrden = document.getElementById('subida-orden');
+    var aArchivosOrdenados = [];
+    function extensionArchivo(f) { return (f.name.split('.').pop() || '').toLowerCase(); }
+    function refrescarSeleccionSubida() {
+      var varios = aArchivosOrdenados.length > 1;
+      aGrupo.hidden = !varios;
+      aTexto.textContent = varios ? 'Subir guía conjunta' : 'Subir archivo';
+      aOrden.replaceChildren();
+      if (!varios) return;
+      var total = aArchivosOrdenados.reduce(function(n, f) { return n + f.size; }, 0);
+      aResumen.textContent = aArchivosOrdenados.length + ' archivos · ' + (total / 1048576).toFixed(1) + ' MB · máximo 30 MB de PDF final para usar en Estudio Rápido.';
+      aArchivosOrdenados.forEach(function(f, i) {
+        var li = document.createElement('li');
+        li.style.marginBottom = '7px';
+        var nombre = document.createElement('span'); nombre.textContent = f.name + ' ';
+        li.appendChild(nombre);
+        [['Subir página', -1], ['Bajar página', 1]].forEach(function(op) {
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = op[1] === -1 ? '↑' : '↓';
+          b.setAttribute('aria-label', op[0] + ': ' + f.name);
+          b.disabled = i + op[1] < 0 || i + op[1] >= aArchivosOrdenados.length || aOcupado;
+          b.style.marginLeft = '7px'; b.style.minWidth = '38px'; b.style.minHeight = '38px';
+          b.addEventListener('click', function() {
+            var j = i + op[1], x = aArchivosOrdenados[i];
+            aArchivosOrdenados[i] = aArchivosOrdenados[j]; aArchivosOrdenados[j] = x;
+            refrescarSeleccionSubida();
+          });
+          li.appendChild(b);
+        });
+        aOrden.appendChild(li);
+      });
+    }
+    aInput.addEventListener('change', function() {
+      if (aOcupado) return;
+      aArchivosOrdenados = Array.from(aInput.files || []);
+      if (aArchivosOrdenados.length > 1 && !aNombre.value.trim()) aNombre.value = 'Guía de estudio';
+      refrescarSeleccionSubida();
+      msg(aEstado, '', '');
+    });
+    async function construirGuiaPdf(archivos, titulo) {
+      if (!window.PDFLib) throw new Error('biblioteca_pdf_no_disponible');
+      var out = await PDFLib.PDFDocument.create();
+      for (var i = 0; i < archivos.length; i++) {
+        var f = archivos[i], ext = extensionArchivo(f);
+        msg(aEstado, 'Preparando página ' + (i + 1) + ' de ' + archivos.length + '…', '');
+        var bytes = await f.arrayBuffer();
+        if (ext === 'pdf') {
+          var original = await PDFLib.PDFDocument.load(bytes);
+          var paginas = await out.copyPages(original, original.getPageIndices());
+          paginas.forEach(function(pag) { out.addPage(pag); });
+        } else {
+          var imagen = ext === 'png' ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+          var ancho = imagen.width, alto = imagen.height;
+          if (!(ancho > 0 && alto > 0)) throw new Error('imagen_invalida');
+          // Tamaño proporcional, sin recorte, respetando el límite de página PDF.
+          var escala = Math.min(1, 14400 / Math.max(ancho, alto));
+          var pag = out.addPage([ancho * escala, alto * escala]);
+          pag.drawImage(imagen, { x: 0, y: 0, width: ancho * escala, height: alto * escala });
+        }
+      }
+      if (out.getPageCount() === 0) throw new Error('sin_paginas');
+      var pdf = await out.save();
+      if (pdf.byteLength > 30 * 1024 * 1024) throw new Error('pdf_excede_30mb');
+      return new File([pdf], titulo + '.pdf', {type:'application/pdf'});
+    }
     var aEstado = document.getElementById('estado-subida'), aIr = document.getElementById('ir-biblioteca');
     var bEstado = document.getElementById('estado-biblioteca');
     var bpEstado = document.getElementById('estado-pruebas-guardadas');
@@ -1220,18 +1280,36 @@
       e.preventDefault();
       if (aOcupado) return;
       aIr.hidden = true;
-      var f = aInput.files && aInput.files[0];
-      if (!f) { msg(aEstado, 'Elige un archivo antes de subirlo.', 'error'); return; }
-      var ext = (f.name.split('.').pop() || '').toLowerCase();
-      if (!MIME[ext]) { msg(aEstado, 'Formato no permitido. Usa PDF, DOC, DOCX, JPG o PNG.', 'error'); return; }
-      if (f.size === 0) { msg(aEstado, 'El archivo está vacío.', 'error'); return; }
-      if (f.size > MAX_BYTES) { msg(aEstado, 'El archivo supera 50 MB.', 'error'); return; }
-      aOcupado = true; aBoton.disabled = true; aTexto.textContent = 'Subiendo…';
+      var seleccion = aArchivosOrdenados.slice();
+      if (!seleccion.length) { msg(aEstado, 'Elige uno o varios archivos antes de subirlos.', 'error'); return; }
+      var conjunto = seleccion.length > 1;
+      var f = seleccion[0], ext = extensionArchivo(f);
+      if (seleccion.length > 100) { msg(aEstado, 'El máximo es 100 archivos por guía conjunta.', 'error'); return; }
+      for (var item of seleccion) {
+        var tipo = extensionArchivo(item);
+        if (!MIME[tipo]) { msg(aEstado, 'Formato no permitido. Usa PDF, DOC, DOCX, JPG o PNG.', 'error'); return; }
+        if (item.size === 0) { msg(aEstado, 'Uno de los archivos está vacío.', 'error'); return; }
+        if (item.size > MAX_BYTES) { msg(aEstado, 'Uno de los archivos supera 50 MB.', 'error'); return; }
+        if (conjunto && !['pdf', 'jpg', 'jpeg', 'png'].includes(tipo)) {
+          msg(aEstado, 'Para combinar varios archivos usa PDF, JPG o PNG. Los Word se suben de uno en uno.', 'error'); return;
+        }
+      }
+      var titulo = aNombre.value.trim().replace(/[\\/:*?"<>|\x00-\x1f]/g, ' ').replace(/\.pdf$/i, '').trim();
+      if (conjunto && !titulo) { msg(aEstado, 'Escribe el nombre de la guía conjunta.', 'error'); return; }
+      if (conjunto && seleccion.reduce(function(n, x) { return n + x.size; }, 0) > 30 * 1024 * 1024) {
+        msg(aEstado, 'Las páginas seleccionadas superan 30 MB acumulados.', 'error'); return;
+      }
+      aOcupado = true; aBoton.disabled = true; aInput.disabled = true; aNombre.disabled = true; aTexto.textContent = 'Preparando…';
+      refrescarSeleccionSubida();
       var ruta = null;
       try {
         msg(aEstado, 'Comprobando sesión…', '');
         var u = await usuarioValido();
         if (!u) { msg(aEstado, 'Necesitas iniciar sesión para subir archivos.', 'error'); return; }
+        if (conjunto) {
+          f = await construirGuiaPdf(seleccion, titulo);
+          ext = 'pdf';
+        }
         ruta = u.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.' + ext;
         msg(aEstado, 'Subiendo archivo… no cierres esta pantalla.', '');
         var up = await cliente.storage.from(BUCKET).upload(ruta, f, { contentType: MIME[ext], upsert: false });
@@ -1248,7 +1326,8 @@
           } // si la fila existe, la respuesta se perdió: se trata como subida correcta
         }
         aInput.value = '';
-        msg(aEstado, 'Archivo subido correctamente.', 'ok');
+        aArchivosOrdenados = []; aNombre.value = ''; refrescarSeleccionSubida();
+        msg(aEstado, conjunto ? 'Guía conjunta guardada correctamente en la Biblioteca.' : 'Archivo subido correctamente.', 'ok');
         aIr.hidden = false;
       } catch (err) {
         console.warn('estudia_subida', (err && (err.code || err.status || err.name || err.message)) || 'desconocido');
@@ -1256,9 +1335,13 @@
         msg(aEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.'
           : m === 'limpieza_pendiente' ? 'El archivo se subió pero no pudo registrarse y no se pudo limpiar. Inténtalo de nuevo.'
           : m === 'registro_incierto' ? 'No se pudo confirmar el registro del archivo. Revisa tu biblioteca antes de volver a subirlo.'
+          : m === 'biblioteca_pdf_no_disponible' ? 'No se cargó el generador PDF. Comprueba la conexión y vuelve a intentarlo.'
+          : m === 'pdf_excede_30mb' ? 'La guía unificada supera 30 MB, límite de Estudio Rápido. Reduce los archivos seleccionados.'
+          : m === 'imagen_invalida' || m === 'sin_paginas' ? 'Uno de los archivos no contiene páginas válidas.'
           : 'No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.', 'error');
       } finally {
-        aOcupado = false; aBoton.disabled = false; aTexto.textContent = 'Subir archivo';
+        aOcupado = false; aBoton.disabled = false; aTexto.textContent = aArchivosOrdenados.length > 1 ? 'Subir guía conjunta' : 'Subir archivo';
+        aInput.disabled = false; aNombre.disabled = false; refrescarSeleccionSubida();
       }
     });
     async function cargarArchivos() {
@@ -1337,54 +1420,11 @@
     // ===== Estudio rápido: conexión con la Edge Function independiente =====
     var erSeleccion = document.getElementById('rapido-archivo');
     var erGenerar = document.getElementById('rapido-generar');
-    var erMultiModo = document.getElementById('rapido-multiple');
-    var erMultiPanel = document.getElementById('rapido-seleccion-multiple');
-    var erMultiLista = document.getElementById('rapido-lista-multiple');
-    var erMultiTotal = document.getElementById('rapido-total-multiple');
     var erNotaLimite = document.getElementById('rapido-nota-limite');
     var erArchivosCompatibles = [];
-    var erSeleccionadosMultiples = new Set();
-    var ER_MAX_CONJUNTO = 30 * 1024 * 1024;
-    function erEsMultiple() { return erMultiModo.checked; }
-    function erDatosMultiples() {
-      var archivos = erArchivosCompatibles.filter(function(a){return erSeleccionadosMultiples.has(a.id);});
-      return {archivos:archivos, total:archivos.reduce(function(n,a){return n + Number(a.tamano);},0)};
-    }
     function erActualizarSeleccion() {
-      var multi = erEsMultiple(), datos = erDatosMultiples();
-      erSeleccion.hidden = multi;
-      erMultiPanel.hidden = !multi;
-      erNotaLimite.textContent = multi
-        ? 'PDF, JPG y PNG. Hasta 100 guías y 30 MB acumulados. La generación necesita conexión a Internet.'
-        : 'Por ahora: PDF, JPG y PNG de hasta 30 MB. La generación necesita conexión a Internet.';
-      erMultiTotal.textContent = datos.archivos.length + ' guías · ' + (datos.total / 1048576).toFixed(2) + ' MB de 30 MB';
-      var valido = multi ? datos.archivos.length >= 2 && datos.archivos.length <= 100 && datos.total <= ER_MAX_CONJUNTO
-        : !!erSeleccion.value;
-      erGenerar.disabled = erOcupado || erCargando || !valido;
-      if (multi && datos.total > ER_MAX_CONJUNTO) erMensaje('La selección supera los 30 MB acumulados.',true);
-      else if (multi && datos.archivos.length > 100) erMensaje('El máximo es de 100 guías.',true);
-      else if (multi && erEstado.classList.contains('error') && /selección supera|máximo es de 100/.test(erEstado.textContent)) erMensaje('',false);
+      erGenerar.disabled = erOcupado || erCargando || !erSeleccion.value;
     }
-    function erPintarSeleccionMultiple() {
-      erMultiLista.replaceChildren();
-      erArchivosCompatibles.forEach(function(a){
-        var etiqueta=document.createElement('label');
-        var check=document.createElement('input'); check.type='checkbox'; check.value=a.id;
-        check.checked=erSeleccionadosMultiples.has(a.id);
-        check.disabled=erOcupado;
-        var texto=document.createElement('span');
-        texto.textContent=a.nombre_original;
-        var detalle=document.createElement('small'); detalle.textContent=(a.tamano/1048576).toFixed(2)+' MB';
-        texto.appendChild(detalle); etiqueta.append(check,texto); erMultiLista.appendChild(etiqueta);
-        check.addEventListener('change',function(){
-          if(check.checked) erSeleccionadosMultiples.add(a.id);
-          else erSeleccionadosMultiples.delete(a.id);
-          erActualizarSeleccion();
-        });
-      });
-      erActualizarSeleccion();
-    }
-    erMultiModo.addEventListener('change',function(){erActualizarSeleccion();});
     var erEstado = document.getElementById('rapido-estado');
     var erElegir = document.getElementById('rapido-elegir');
     var erEjercicio = document.getElementById('rapido-ejercicio');
@@ -1419,7 +1459,7 @@
       erResultado.hidden = true; erResultado.replaceChildren();
       erDecision.hidden = true; erDecision.replaceChildren();
       erEjercicio.hidden = true; erElegir.hidden = false;
-      erSeleccion.value = ''; erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple(); erGenerar.disabled = true; erMensaje('', false);
+      erSeleccion.value = '';  erGenerar.disabled = true; erMensaje('', false);
       if (erVisible()) erPrepararLista();
     }
     function erDecidirIntento(verResultado) {
@@ -1503,7 +1543,7 @@
       erEjercicio.hidden = true;
       erElegir.hidden = false;
       erSeleccion.value = '';
-      erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
+      
       erGenerar.disabled = true;
       erMensaje('', false);
     }
@@ -1785,25 +1825,21 @@
         var u = await usuarioValido();
         if (!u) {
           erSeleccion.replaceChildren(new Option('Inicia sesión para continuar', ''));
-          erArchivosCompatibles=[]; erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
+          erArchivosCompatibles=[]; 
           erMensaje('Necesitas iniciar sesión para usar Estudio rápido.', true);
           return;
         }
         var r = await cliente.from('archivos_usuario').select('id,nombre_original,tipo,tamano,estado')
           .eq('estado','activo').order('creado_en',{ascending:false});
         if (r.error) throw r.error;
-        // El modo individual admite hasta 30 MB; conjuntos permiten 30 MB acumulados.
         erArchivosCompatibles = (r.data || []).filter(function(a){
-          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= ER_MAX_CONJUNTO;
+          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= 8*1024*1024;
         });
-        var individuales=erArchivosCompatibles.filter(function(a){return a.tamano <= ER_MAX_CONJUNTO;});
+        var individuales = erArchivosCompatibles;
         var anterior = erSeleccion.value;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
         individuales.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
         if (individuales.some(function(a){return a.id === anterior})) erSeleccion.value = anterior;
-        var idsActuales=new Set(erArchivosCompatibles.map(function(a){return a.id;}));
-        erSeleccionadosMultiples.forEach(function(id){if(!idsActuales.has(id)) erSeleccionadosMultiples.delete(id);});
-        erPintarSeleccionMultiple();
         erSeleccion.disabled = !individuales.length;
         erMensaje(erArchivosCompatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG o PNG desde «Subir archivo».', !erArchivosCompatibles.length);
       } catch (e) {
@@ -1814,7 +1850,7 @@
     function erErrorFuncion(error) {
       var status = error && error.context && error.context.status;
       if (status === 401 || status === 403) return 'La sesión expiró o no tiene permiso. Inicia sesión de nuevo.';
-      if (status === 413) return erEsMultiple() ? 'La selección supera el límite permitido de 30 MB.' : 'La guía supera el tamaño admitido para Estudio rápido (30 MB).';
+      if (status === 413) return 'La guía supera el tamaño admitido para Estudio rápido (30 MB).';
       if (status === 415) return 'Este formato aún no es compatible. Usa PDF, JPG o PNG.';
       if (status === 422) return 'No fue posible generar 25 preguntas válidas con esta guía.';
       if (status === 429) return 'Hay demasiadas solicitudes. Inténtalo más tarde.';
@@ -1867,28 +1903,16 @@
     }
     erGenerar.addEventListener('click', async function() {
       if (erOcupado || !cliente || erGenerar.disabled) return;
-      var multiple=erEsMultiple(), datos=erDatosMultiples();
-      var id=erSeleccion.value, ids=datos.archivos.map(function(a){return a.id;});
-      if (multiple && (ids.length<2 || ids.length>100 || datos.total>ER_MAX_CONJUNTO)) return;
-      var nombreElegido=multiple ? 'Conjunto de '+ids.length+' guías' : (erSeleccion.selectedOptions[0]?.textContent || 'Prueba de estudio rápido');
+      var id = erSeleccion.value;
+      if (!id) return;
+      var nombreElegido = erSeleccion.selectedOptions[0]?.textContent || 'Prueba de estudio rápido';
       var operacion = ++erConsulta;
       erOcupado = true; erGenerar.disabled = true; erSeleccion.disabled = true;
-      erMultiModo.disabled=true;
-      erMultiLista.querySelectorAll('input').forEach(function(c){c.disabled=true;});
       erMensaje('Preparando 25 preguntas. Puede tardar un momento; no cierres la página.', false);
       try {
         var u = await usuarioValido();
         if (!u) { erMensaje('Necesitas iniciar sesión para continuar.', true); return; }
-        if (multiple) {
-          var validacion=await cliente.functions.invoke('estudio-rapido', {body:{accion:'validar_seleccion',archivo_ids:ids}});
-          if (validacion.error || !validacion.data?.valido) {
-            erMensaje(validacion.error ? erErrorFuncion(validacion.error) : 'No se pudo validar la selección de guías.',true);
-            return;
-          }
-        }
-        var r = await cliente.functions.invoke('estudio-rapido', {body:multiple
-          ? {accion:'generar_conjunto',archivo_ids:ids}
-          : {accion:'generar',archivo_id:id}});
+        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'generar',archivo_id:id}});
         if (r.error) { erMensaje(erErrorFuncion(r.error), true); return; }
         var d = r.data;
         if (!d || !Array.isArray(d.preguntas) || d.preguntas.length !== 25 || typeof d.material_id !== 'string' ||
@@ -1922,8 +1946,6 @@
       } finally {
         if (operacion === erConsulta) {
           erOcupado = false; erSeleccion.disabled = !Array.from(erSeleccion.options).some(function(x){return !!x.value;});
-          erMultiModo.disabled=false;
-          erMultiLista.querySelectorAll('input').forEach(function(c){c.disabled=false;});
           erActualizarSeleccion();
           if (erActual && !erEjercicio.hidden) erPintar();
         }
