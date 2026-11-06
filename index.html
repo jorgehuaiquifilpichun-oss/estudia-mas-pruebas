@@ -214,6 +214,13 @@
   .rapido select { width:100%; min-height:46px; background:#fff; color:var(--texto); border:1px solid #a9b9d6; border-radius:12px; padding:10px; font:inherit; }
   .rapido .boton { cursor:pointer; margin-top:14px; }
   .rapido .boton:disabled { opacity:.6; cursor:not-allowed; }
+  .rapido .rapido-modo-multiple { display:flex; align-items:center; gap:9px; margin:14px 0; cursor:pointer; }
+  .rapido-modo-multiple input, .rapido-lista-multiple input { width:19px; height:19px; flex:none; accent-color:var(--verde); }
+  .rapido-lista-multiple { max-height:280px; overflow-y:auto; background:#fff; border-radius:12px; padding:6px 10px; border:1px solid #a9b9d6; }
+  .rapido .rapido-lista-multiple label { display:flex; align-items:center; gap:9px; padding:9px 3px; margin:0; font-weight:500; border-bottom:1px solid #e3e9ef; overflow-wrap:anywhere; }
+  .rapido-lista-multiple label:last-child { border-bottom:0; }
+  .rapido-lista-multiple small { display:block; color:var(--texto-suave); margin-top:3px; }
+  .rapido-lista-multiple span { min-width:0; }
   .rapido .estado-rapido { min-height:1.5em; color:var(--texto-suave); margin:12px 0 0; }
   .rapido .estado-rapido.error { color:#a12b2b; font-weight:600; }
   .rapido-pregunta { margin-top:18px; padding:18px 14px; border-radius:18px; background:#fff; }
@@ -563,7 +570,13 @@
         <p>Elige una guía de tu biblioteca para estudiar con 25 preguntas.</p>
         <label for="rapido-archivo">Guía de estudio</label>
         <select id="rapido-archivo"><option value="">Cargando guías…</option></select>
-        <p class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.</p>
+        <label class="rapido-modo-multiple"><input type="checkbox" id="rapido-multiple"> Seleccionar varias guías</label>
+        <div id="rapido-seleccion-multiple" hidden>
+          <p class="rapido-nota">Selecciona las guías de tu biblioteca que formarán una sola prueba de 25 preguntas.</p>
+          <div id="rapido-lista-multiple" class="rapido-lista-multiple" role="group" aria-label="Guías disponibles"></div>
+          <p id="rapido-total-multiple" class="rapido-progreso" aria-live="polite">0 guías · 0 MB de 30 MB</p>
+        </div>
+        <p id="rapido-nota-limite" class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.</p>
         <button type="button" id="rapido-generar" class="boton b-verde" disabled>Comenzar estudio rápido</button>
       </div>
       <p id="rapido-estado" class="estado-rapido" role="status" aria-live="polite"></p>
@@ -804,6 +817,7 @@
         erEjercicio.hidden = true; erResultado.hidden = true; erElegir.hidden = false;
         erDecision.hidden = true;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
+        erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
         erGenerar.disabled = true;
       }
       if (typeof erPrepararLista === 'function' && location.hash === '#estudio-rapido') erPrepararLista();
@@ -1323,6 +1337,54 @@
     // ===== Estudio rápido: conexión con la Edge Function independiente =====
     var erSeleccion = document.getElementById('rapido-archivo');
     var erGenerar = document.getElementById('rapido-generar');
+    var erMultiModo = document.getElementById('rapido-multiple');
+    var erMultiPanel = document.getElementById('rapido-seleccion-multiple');
+    var erMultiLista = document.getElementById('rapido-lista-multiple');
+    var erMultiTotal = document.getElementById('rapido-total-multiple');
+    var erNotaLimite = document.getElementById('rapido-nota-limite');
+    var erArchivosCompatibles = [];
+    var erSeleccionadosMultiples = new Set();
+    var ER_MAX_CONJUNTO = 30 * 1024 * 1024;
+    function erEsMultiple() { return erMultiModo.checked; }
+    function erDatosMultiples() {
+      var archivos = erArchivosCompatibles.filter(function(a){return erSeleccionadosMultiples.has(a.id);});
+      return {archivos:archivos, total:archivos.reduce(function(n,a){return n + Number(a.tamano);},0)};
+    }
+    function erActualizarSeleccion() {
+      var multi = erEsMultiple(), datos = erDatosMultiples();
+      erSeleccion.hidden = multi;
+      erMultiPanel.hidden = !multi;
+      erNotaLimite.textContent = multi
+        ? 'PDF, JPG y PNG. Hasta 100 guías y 30 MB acumulados. La generación necesita conexión a Internet.'
+        : 'Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.';
+      erMultiTotal.textContent = datos.archivos.length + ' guías · ' + (datos.total / 1048576).toFixed(2) + ' MB de 30 MB';
+      var valido = multi ? datos.archivos.length >= 2 && datos.archivos.length <= 100 && datos.total <= ER_MAX_CONJUNTO
+        : !!erSeleccion.value;
+      erGenerar.disabled = erOcupado || erCargando || !valido;
+      if (multi && datos.total > ER_MAX_CONJUNTO) erMensaje('La selección supera los 30 MB acumulados.',true);
+      else if (multi && datos.archivos.length > 100) erMensaje('El máximo es de 100 guías.',true);
+      else if (multi && erEstado.classList.contains('error') && /selección supera|máximo es de 100/.test(erEstado.textContent)) erMensaje('',false);
+    }
+    function erPintarSeleccionMultiple() {
+      erMultiLista.replaceChildren();
+      erArchivosCompatibles.forEach(function(a){
+        var etiqueta=document.createElement('label');
+        var check=document.createElement('input'); check.type='checkbox'; check.value=a.id;
+        check.checked=erSeleccionadosMultiples.has(a.id);
+        check.disabled=erOcupado;
+        var texto=document.createElement('span');
+        texto.textContent=a.nombre_original;
+        var detalle=document.createElement('small'); detalle.textContent=(a.tamano/1048576).toFixed(2)+' MB';
+        texto.appendChild(detalle); etiqueta.append(check,texto); erMultiLista.appendChild(etiqueta);
+        check.addEventListener('change',function(){
+          if(check.checked) erSeleccionadosMultiples.add(a.id);
+          else erSeleccionadosMultiples.delete(a.id);
+          erActualizarSeleccion();
+        });
+      });
+      erActualizarSeleccion();
+    }
+    erMultiModo.addEventListener('change',function(){erActualizarSeleccion();});
     var erEstado = document.getElementById('rapido-estado');
     var erElegir = document.getElementById('rapido-elegir');
     var erEjercicio = document.getElementById('rapido-ejercicio');
@@ -1357,7 +1419,7 @@
       erResultado.hidden = true; erResultado.replaceChildren();
       erDecision.hidden = true; erDecision.replaceChildren();
       erEjercicio.hidden = true; erElegir.hidden = false;
-      erSeleccion.value = ''; erGenerar.disabled = true; erMensaje('', false);
+      erSeleccion.value = ''; erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple(); erGenerar.disabled = true; erMensaje('', false);
       if (erVisible()) erPrepararLista();
     }
     function erDecidirIntento(verResultado) {
@@ -1441,6 +1503,7 @@
       erEjercicio.hidden = true;
       erElegir.hidden = false;
       erSeleccion.value = '';
+      erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
       erGenerar.disabled = true;
       erMensaje('', false);
     }
@@ -1722,32 +1785,36 @@
         var u = await usuarioValido();
         if (!u) {
           erSeleccion.replaceChildren(new Option('Inicia sesión para continuar', ''));
+          erArchivosCompatibles=[]; erSeleccionadosMultiples.clear(); erPintarSeleccionMultiple();
           erMensaje('Necesitas iniciar sesión para usar Estudio rápido.', true);
           return;
         }
         var r = await cliente.from('archivos_usuario').select('id,nombre_original,tipo,tamano,estado')
           .eq('estado','activo').order('creado_en',{ascending:false});
         if (r.error) throw r.error;
-        // Backend acepta PDF/JPG/JPEG/PNG hasta 8 MB, no DOC ni DOCX todavía.
-        var compatibles = (r.data || []).filter(function(a){
-          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= 8*1024*1024;
+        // El modo individual conserva su máximo de 8 MB; conjuntos permiten 30 MB acumulados.
+        erArchivosCompatibles = (r.data || []).filter(function(a){
+          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= ER_MAX_CONJUNTO;
         });
+        var individuales=erArchivosCompatibles.filter(function(a){return a.tamano <= 8*1024*1024;});
         var anterior = erSeleccion.value;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
-        compatibles.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
-        if (compatibles.some(function(a){return a.id === anterior})) erSeleccion.value = anterior;
-        erSeleccion.disabled = !compatibles.length;
-        erGenerar.disabled = !erSeleccion.value;
-        erMensaje(compatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG o PNG de hasta 8 MB desde «Subir archivo».', !compatibles.length);
+        individuales.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
+        if (individuales.some(function(a){return a.id === anterior})) erSeleccion.value = anterior;
+        var idsActuales=new Set(erArchivosCompatibles.map(function(a){return a.id;}));
+        erSeleccionadosMultiples.forEach(function(id){if(!idsActuales.has(id)) erSeleccionadosMultiples.delete(id);});
+        erPintarSeleccionMultiple();
+        erSeleccion.disabled = !individuales.length;
+        erMensaje(erArchivosCompatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG o PNG desde «Subir archivo».', !erArchivosCompatibles.length);
       } catch (e) {
         erMensaje(errSesion(e) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudieron cargar tus guías. Vuelve a entrar a esta pantalla.', true);
-      } finally { erCargando = false; }
+      } finally { erCargando = false; erActualizarSeleccion(); }
     }
-    erSeleccion.addEventListener('change', function(){ erGenerar.disabled = erOcupado || !erSeleccion.value; });
+    erSeleccion.addEventListener('change', erActualizarSeleccion);
     function erErrorFuncion(error) {
       var status = error && error.context && error.context.status;
       if (status === 401 || status === 403) return 'La sesión expiró o no tiene permiso. Inicia sesión de nuevo.';
-      if (status === 413) return 'La guía supera el tamaño admitido para Estudio rápido (8 MB).';
+      if (status === 413) return erEsMultiple() ? 'La selección supera el límite permitido de 30 MB.' : 'La guía supera el tamaño admitido para Estudio rápido (8 MB).';
       if (status === 415) return 'Este formato aún no es compatible. Usa PDF, JPG o PNG.';
       if (status === 422) return 'No fue posible generar 25 preguntas válidas con esta guía.';
       if (status === 429) return 'Hay demasiadas solicitudes. Inténtalo más tarde.';
@@ -1799,14 +1866,29 @@
       } finally { erOcupado=false; boton.disabled=false; if(erActual && erActual.prueba_id===pruebaId && !erEjercicio.hidden) erPintar(); }
     }
     erGenerar.addEventListener('click', async function() {
-      if (erOcupado || !erSeleccion.value || !cliente) return;
-      var id = erSeleccion.value, operacion = ++erConsulta;
+      if (erOcupado || !cliente || erGenerar.disabled) return;
+      var multiple=erEsMultiple(), datos=erDatosMultiples();
+      var id=erSeleccion.value, ids=datos.archivos.map(function(a){return a.id;});
+      if (multiple && (ids.length<2 || ids.length>100 || datos.total>ER_MAX_CONJUNTO)) return;
+      var nombreElegido=multiple ? 'Conjunto de '+ids.length+' guías' : (erSeleccion.selectedOptions[0]?.textContent || 'Prueba de estudio rápido');
+      var operacion = ++erConsulta;
       erOcupado = true; erGenerar.disabled = true; erSeleccion.disabled = true;
+      erMultiModo.disabled=true;
+      erMultiLista.querySelectorAll('input').forEach(function(c){c.disabled=true;});
       erMensaje('Preparando 25 preguntas. Puede tardar un momento; no cierres la página.', false);
       try {
         var u = await usuarioValido();
         if (!u) { erMensaje('Necesitas iniciar sesión para continuar.', true); return; }
-        var r = await cliente.functions.invoke('estudio-rapido', {body:{accion:'generar',archivo_id:id}});
+        if (multiple) {
+          var validacion=await cliente.functions.invoke('estudio-rapido', {body:{accion:'validar_seleccion',archivo_ids:ids}});
+          if (validacion.error || !validacion.data?.valido) {
+            erMensaje(validacion.error ? erErrorFuncion(validacion.error) : 'No se pudo validar la selección de guías.',true);
+            return;
+          }
+        }
+        var r = await cliente.functions.invoke('estudio-rapido', {body:multiple
+          ? {accion:'generar_conjunto',archivo_ids:ids}
+          : {accion:'generar',archivo_id:id}});
         if (r.error) { erMensaje(erErrorFuncion(r.error), true); return; }
         var d = r.data;
         if (!d || !Array.isArray(d.preguntas) || d.preguntas.length !== 25 || typeof d.material_id !== 'string' ||
@@ -1815,7 +1897,7 @@
         }
         erOcultarRecuperacion();
         erActual = {usuario:u.id, material_id:d.material_id, preguntas:d.preguntas,
-          indice:0, respuestas:Array(25).fill(null), intento_id:null, nombre_guia:erSeleccion.selectedOptions[0]?.textContent || 'Prueba de estudio rápido'};
+          indice:0, respuestas:Array(25).fill(null), intento_id:null, nombre_guia:d.nombre || nombreElegido};
         erRestaurar();
         // Un borrador de reintento tiene su identificador, aunque aún no haya respuestas.
         var reintentoPendiente = !!erActual.intento_id;
@@ -1839,8 +1921,10 @@
         erMensaje(errSesion(e) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudo iniciar el cuestionario. Inténtalo de nuevo.', true);
       } finally {
         if (operacion === erConsulta) {
-          erOcupado = false; erSeleccion.disabled = false;
-          erGenerar.disabled = !erSeleccion.value;
+          erOcupado = false; erSeleccion.disabled = !Array.from(erSeleccion.options).some(function(x){return !!x.value;});
+          erMultiModo.disabled=false;
+          erMultiLista.querySelectorAll('input').forEach(function(c){c.disabled=false;});
+          erActualizarSeleccion();
           if (erActual && !erEjercicio.hidden) erPintar();
         }
       }
