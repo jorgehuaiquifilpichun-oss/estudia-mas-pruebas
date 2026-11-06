@@ -576,7 +576,7 @@
           <div id="rapido-lista-multiple" class="rapido-lista-multiple" role="group" aria-label="Guías disponibles"></div>
           <p id="rapido-total-multiple" class="rapido-progreso" aria-live="polite">0 guías · 0 MB de 30 MB</p>
         </div>
-        <p id="rapido-nota-limite" class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.</p>
+        <p id="rapido-nota-limite" class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 30 MB. La generación necesita conexión a Internet.</p>
         <button type="button" id="rapido-generar" class="boton b-verde" disabled>Comenzar estudio rápido</button>
       </div>
       <p id="rapido-estado" class="estado-rapido" role="status" aria-live="polite"></p>
@@ -1356,7 +1356,7 @@
       erMultiPanel.hidden = !multi;
       erNotaLimite.textContent = multi
         ? 'PDF, JPG y PNG. Hasta 100 guías y 30 MB acumulados. La generación necesita conexión a Internet.'
-        : 'Por ahora: PDF, JPG y PNG de hasta 8 MB. La generación necesita conexión a Internet.';
+        : 'Por ahora: PDF, JPG y PNG de hasta 30 MB. La generación necesita conexión a Internet.';
       erMultiTotal.textContent = datos.archivos.length + ' guías · ' + (datos.total / 1048576).toFixed(2) + ' MB de 30 MB';
       var valido = multi ? datos.archivos.length >= 2 && datos.archivos.length <= 100 && datos.total <= ER_MAX_CONJUNTO
         : !!erSeleccion.value;
@@ -1792,11 +1792,11 @@
         var r = await cliente.from('archivos_usuario').select('id,nombre_original,tipo,tamano,estado')
           .eq('estado','activo').order('creado_en',{ascending:false});
         if (r.error) throw r.error;
-        // El modo individual conserva su máximo de 8 MB; conjuntos permiten 30 MB acumulados.
+        // El modo individual admite hasta 30 MB; conjuntos permiten 30 MB acumulados.
         erArchivosCompatibles = (r.data || []).filter(function(a){
           return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= ER_MAX_CONJUNTO;
         });
-        var individuales=erArchivosCompatibles.filter(function(a){return a.tamano <= 8*1024*1024;});
+        var individuales=erArchivosCompatibles.filter(function(a){return a.tamano <= ER_MAX_CONJUNTO;});
         var anterior = erSeleccion.value;
         erSeleccion.replaceChildren(new Option('Selecciona una guía', ''));
         individuales.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
@@ -1814,7 +1814,7 @@
     function erErrorFuncion(error) {
       var status = error && error.context && error.context.status;
       if (status === 401 || status === 403) return 'La sesión expiró o no tiene permiso. Inicia sesión de nuevo.';
-      if (status === 413) return erEsMultiple() ? 'La selección supera el límite permitido de 30 MB.' : 'La guía supera el tamaño admitido para Estudio rápido (8 MB).';
+      if (status === 413) return erEsMultiple() ? 'La selección supera el límite permitido de 30 MB.' : 'La guía supera el tamaño admitido para Estudio rápido (30 MB).';
       if (status === 415) return 'Este formato aún no es compatible. Usa PDF, JPG o PNG.';
       if (status === 422) return 'No fue posible generar 25 preguntas válidas con esta guía.';
       if (status === 429) return 'Hay demasiadas solicitudes. Inténtalo más tarde.';
