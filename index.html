@@ -523,11 +523,11 @@
     <div class="archivos" style="background:var(--azul-pastel)">
       <svg viewBox="0 0 270 240" aria-hidden="true"><use href="#ic-subir"/></svg>
       <h2 id="t-subir" tabindex="-1">Subir archivo</h2>
-      <p>PDF, Word (DOC, DOCX), JPG o PNG. Máximo 50 MB.</p>
+      <p>PDF, Word (DOC, DOCX), PowerPoint (PPT, PPTX), JPG o PNG. Máximo 50 MB.</p>
       <form id="form-subir" novalidate>
         <label for="archivo-subir">Elige uno o varios archivos</label>
-        <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" multiple>
-        <p class="rapido-nota">Para una guía con varias páginas, selecciona juntas imágenes JPG/PNG o PDF. Se guardarán como un solo PDF. Los archivos Word se suben individualmente.</p>
+        <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png" multiple>
+        <p class="rapido-nota">Para una guía con varias páginas, selecciona juntas imágenes JPG/PNG o PDF. Se guardarán como un solo PDF. Los archivos Word y PowerPoint se suben individualmente. PowerPoint aún no se procesa en Estudio Rápido.</p>
         <div id="subida-grupo" hidden>
           <label for="subida-nombre">Nombre de la guía conjunta</label>
           <input id="subida-nombre" type="text" maxlength="190" placeholder="Por ejemplo: Ciencias Naturales" style="width:100%;min-height:46px;padding:10px;border:1px solid #a9b9d6;border-radius:12px;font:inherit">
@@ -626,7 +626,7 @@
       <button type="button" class="bib-filtro" id="bib-filtro" aria-expanded="false" aria-controls="bib-paneles" aria-label="Filtros"><svg aria-hidden="true"><use href="#i-filtro"/></svg></button>
     </div>
     <div class="bib-paneles" id="bib-paneles" hidden>
-      <label>Tipo de archivo<select id="bib-f-tipo"><option value="todos">Todos</option><option value="pdf">PDF</option><option value="word">Word (DOC, DOCX)</option><option value="img">Imagen (JPG, PNG)</option></select></label>
+      <label>Tipo de archivo<select id="bib-f-tipo"><option value="todos">Todos</option><option value="pdf">PDF</option><option value="word">Word (DOC, DOCX)</option><option value="ppt">PowerPoint (PPT, PPTX)</option><option value="img">Imagen (JPG, PNG)</option></select></label>
       <label>Fecha de incorporación<select id="bib-f-fecha"><option value="todas">Cualquier fecha</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="365">Últimos 12 meses</option></select></label>
       <label>Orden<select id="bib-f-orden"><option value="recientes">Más recientes primero</option><option value="antiguos">Más antiguos primero</option><option value="az">Alfabético (A–Z)</option></select></label>
       <button type="button" id="bib-f-limpiar">Quitar filtros</button>
@@ -972,7 +972,7 @@
 
     // ===== Archivos: Storage "estudia-archivos" + tabla archivos_usuario =====
     var BUCKET = 'estudia-archivos', MAX_BYTES = 50 * 1024 * 1024;
-    var MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+    var MIME = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
     var aForm = document.getElementById('form-subir'), aInput = document.getElementById('archivo-subir');
     var aBoton = document.getElementById('boton-subir'), aTexto = document.getElementById('texto-subir');
     var aGrupo = document.getElementById('subida-grupo'), aNombre = document.getElementById('subida-nombre');
@@ -1079,7 +1079,7 @@
       return s || String(nombre || 'Documento');
     }
     function bibSuave(n) { return String(n).replace(/([_\-.])/g, '$1\u200b'); }
-    function bibGrupo(tipo) { tipo = String(tipo || '').toLowerCase(); return tipo === 'pdf' ? 'pdf' : (tipo === 'doc' || tipo === 'docx') ? 'word' : 'img'; }
+    function bibGrupo(tipo) { tipo = String(tipo || '').toLowerCase(); return tipo === 'pdf' ? 'pdf' : (tipo === 'doc' || tipo === 'docx') ? 'word' : (tipo === 'ppt' || tipo === 'pptx') ? 'ppt' : 'img'; }
     var bibReducir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Carrusel genérico: scroll nativo con snap; el elemento más cercano al centro queda seleccionado.
@@ -1175,7 +1175,7 @@
       bibCard.replaceChildren(); bibCard.style.setProperty('--aro', col.aro);
       var fila = document.createElement('div'), doc = document.createElement('div'), ins = document.createElement('b'), info = document.createElement('div'), n = document.createElement('p'), m = document.createElement('p');
       fila.className = 'bib-card-fila'; doc.className = 'bib-doc'; doc.setAttribute('aria-hidden', 'true');
-      ins.textContent = g === 'pdf' ? 'PDF' : g === 'word' ? 'DOC' : 'IMG'; doc.style.setProperty('--ins', g === 'pdf' ? '#d92d20' : g === 'word' ? '#1d5fd6' : '#119a6b'); doc.appendChild(ins);
+      ins.textContent = g === 'pdf' ? 'PDF' : g === 'word' ? 'DOC' : g === 'ppt' ? 'PPT' : 'IMG'; doc.style.setProperty('--ins', g === 'pdf' ? '#d92d20' : g === 'word' ? '#1d5fd6' : g === 'ppt' ? '#b45309' : '#119a6b'); doc.appendChild(ins);
       info.className = 'bib-card-info'; n.className = 'bib-nombre'; n.textContent = bibSuave(a.nombre_original);
       m.className = 'bib-meta'; m.textContent = String(a.tipo).toUpperCase() + ' · ' + tam(a.tamano) + ' · ' + new Date(a.creado_en).toLocaleDateString('es') + (pend ? ' · eliminación pendiente' : '');
       info.appendChild(n); info.appendChild(m); fila.appendChild(doc); fila.appendChild(info); bibCard.appendChild(fila);
@@ -1287,11 +1287,11 @@
       if (seleccion.length > 100) { msg(aEstado, 'El máximo es 100 archivos por guía conjunta.', 'error'); return; }
       for (var item of seleccion) {
         var tipo = extensionArchivo(item);
-        if (!MIME[tipo]) { msg(aEstado, 'Formato no permitido. Usa PDF, DOC, DOCX, JPG o PNG.', 'error'); return; }
+        if (!MIME[tipo]) { msg(aEstado, 'Formato no permitido. Usa PDF, DOC, DOCX, PPT, PPTX, JPG o PNG.', 'error'); return; }
         if (item.size === 0) { msg(aEstado, 'Uno de los archivos está vacío.', 'error'); return; }
         if (item.size > MAX_BYTES) { msg(aEstado, 'Uno de los archivos supera 50 MB.', 'error'); return; }
         if (conjunto && !['pdf', 'jpg', 'jpeg', 'png'].includes(tipo)) {
-          msg(aEstado, 'Para combinar varios archivos usa PDF, JPG o PNG. Los Word se suben de uno en uno.', 'error'); return;
+          msg(aEstado, 'Para combinar varios archivos usa PDF, JPG o PNG. Word y PowerPoint se suben de uno en uno.', 'error'); return;
         }
       }
       var titulo = aNombre.value.trim().replace(/[\\/:*?"<>|\x00-\x1f]/g, ' ').replace(/\.pdf$/i, '').trim();
