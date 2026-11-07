@@ -527,7 +527,7 @@
       <form id="form-subir" novalidate>
         <label for="archivo-subir">Elige uno o varios archivos</label>
         <input id="archivo-subir" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png" multiple>
-        <p class="rapido-nota">Para una guía con varias páginas, selecciona juntas imágenes JPG/PNG o PDF. Se guardarán como un solo PDF. Los archivos Word y PowerPoint se suben individualmente. PowerPoint aún no se procesa en Estudio Rápido.</p>
+        <p class="rapido-nota">Para una guía con varias páginas, selecciona juntas imágenes JPG/PNG o PDF. Se guardarán como un solo PDF. Los archivos Word y PowerPoint se suben individualmente. Las presentaciones PPTX con texto pueden usarse en Estudio Rápido. Los PPT antiguos deben convertirse a PPTX o PDF.</p>
         <div id="subida-grupo" hidden>
           <label for="subida-nombre">Nombre de la guía conjunta</label>
           <input id="subida-nombre" type="text" maxlength="190" placeholder="Por ejemplo: Ciencias Naturales" style="width:100%;min-height:46px;padding:10px;border:1px solid #a9b9d6;border-radius:12px;font:inherit">
@@ -570,7 +570,7 @@
         <p>Elige una guía de tu biblioteca para estudiar con 25 preguntas.</p>
         <label for="rapido-archivo">Guía de estudio</label>
         <select id="rapido-archivo"><option value="">Cargando guías…</option></select>
-        <p id="rapido-nota-limite" class="rapido-nota">Por ahora: PDF, JPG y PNG de hasta 30 MB. La generación necesita conexión a Internet.</p>
+        <p id="rapido-nota-limite" class="rapido-nota">PDF, JPG, PNG y PPTX con texto de hasta 30 MB. Los PPT antiguos deben convertirse a PPTX o PDF. La generación necesita conexión a Internet.</p>
         <button type="button" id="rapido-generar" class="boton b-verde" disabled>Comenzar estudio rápido</button>
       </div>
       <p id="rapido-estado" class="estado-rapido" role="status" aria-live="polite"></p>
@@ -1833,7 +1833,7 @@
           .eq('estado','activo').order('creado_en',{ascending:false});
         if (r.error) throw r.error;
         erArchivosCompatibles = (r.data || []).filter(function(a){
-          return ['pdf','jpg','jpeg','png'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= 8*1024*1024;
+          return ['pdf','jpg','jpeg','png','pptx'].indexOf(a.tipo) !== -1 && a.tamano > 0 && a.tamano <= 30*1024*1024;
         });
         var individuales = erArchivosCompatibles;
         var anterior = erSeleccion.value;
@@ -1841,7 +1841,7 @@
         individuales.forEach(function(a){ erSeleccion.add(new Option(a.nombre_original, a.id)); });
         if (individuales.some(function(a){return a.id === anterior})) erSeleccion.value = anterior;
         erSeleccion.disabled = !individuales.length;
-        erMensaje(erArchivosCompatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG o PNG desde «Subir archivo».', !erArchivosCompatibles.length);
+        erMensaje(erArchivosCompatibles.length ? '' : 'No hay guías compatibles. Sube un PDF, JPG, PNG o PPTX desde «Subir archivo».', !erArchivosCompatibles.length);
       } catch (e) {
         erMensaje(errSesion(e) ? 'Tu sesión expiró. Inicia sesión de nuevo.' : 'No se pudieron cargar tus guías. Vuelve a entrar a esta pantalla.', true);
       } finally { erCargando = false; erActualizarSeleccion(); }
@@ -1851,7 +1851,7 @@
       var status = error && error.context && error.context.status;
       if (status === 401 || status === 403) return 'La sesión expiró o no tiene permiso. Inicia sesión de nuevo.';
       if (status === 413) return 'La guía supera el tamaño admitido para Estudio rápido (30 MB).';
-      if (status === 415) return 'Este formato aún no es compatible. Usa PDF, JPG o PNG.';
+      if (status === 415) return 'El formato PPT antiguo debe convertirse a PPTX o PDF antes de usar Estudio Rápido.';
       if (status === 422) return 'No fue posible generar 25 preguntas válidas con esta guía.';
       if (status === 429) return 'Hay demasiadas solicitudes. Inténtalo más tarde.';
       if (status === 409) return 'Este cuestionario ya fue calificado.';
