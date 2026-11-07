@@ -549,11 +549,9 @@
       <p>Elige una actividad.</p>
       <ul>
         <li><a class="act destacada" href="#estudio-rapido"><span class="nom">Estudio rápido</span></a></li>
-        <li><span class="act" aria-disabled="true"><span class="nom">Resúmenes</span><span class="pronto">Próximamente</span></span></li>
-        <li><span class="act" aria-disabled="true"><span class="nom">Preguntas</span><span class="pronto">Próximamente</span></span></li>
-        <li><span class="act" aria-disabled="true"><span class="nom">Cuestionarios</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Leer y escuchar</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Tarjetas de memoria</span><span class="pronto">Próximamente</span></span></li>
-        <li><span class="act" aria-disabled="true"><span class="nom">Evaluaciones</span><span class="pronto">Próximamente</span></span></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Resumen</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Trípticos</span><span class="pronto">Próximamente</span></span></li>
         <li><a class="act" href="#preguntas-app"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="nom">Preguntas a la app<small>Haz preguntas y resuelve tus dudas de estudio.</small></span></a></li>
       </ul>
@@ -1631,7 +1629,7 @@
           publicar.disabled = true; publicar.textContent = 'Publicando…';
           erOcupado = true;
           try {
-            var titulo = erActual.nombre_guia || 'Prueba de estudio rápido';
+            var titulo = (erActual.nombre_guia || 'Prueba de estudio rápido').slice(0, 150); // La función rechaza nombres de más de 150 caracteres.
             var res = await cliente.functions.invoke('estudio-rapido',
               {body:{accion:'publicar', material_id:materialId, nombre:titulo}});
             if (res.error || !res.data || !res.data.publicada || !res.data.prueba_id)
