@@ -389,6 +389,30 @@
   .bib-nav a[aria-current="page"]{background:#dcebff;color:#1a56c9;font-weight:800}
   @media (max-width:340px){.bib-card-fila{flex-direction:column}.bib-acc{flex-direction:column}}
   @media (prefers-reduced-motion:reduce){.circ,.prueba,.bib-card{transition:none;animation:none}}
+
+
+  /* Selector por formato de Leer y escuchar, aislado de la Biblioteca y Estudio rápido. */
+  #lector-selector{max-width:480px;margin-left:auto;margin-right:auto}
+  .lector-formatos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+  .lector-formato{border:2px solid #b9d1e5;border-radius:14px;background:#fff;color:#254367;min-height:62px;font:750 1rem var(--fuente);cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px}
+  .lector-formato small{font-size:.73rem;font-weight:500;color:#5c6b82}
+  .lector-formato[aria-pressed="true"]{background:#e0f2ec;border-color:#20886c;color:#176c52}
+  .lector-formato:focus-visible,.lector-item:focus-visible{outline:3px solid var(--azul);outline-offset:2px}
+  #lector-busqueda{width:100%;min-height:44px;border:1px solid #a9b9d6;border-radius:12px;padding:10px 12px;font:inherit;color:var(--texto);background:#fff}
+  .lector-lista{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:7px;max-height:min(43dvh,340px);overflow:auto;overscroll-behavior:contain}
+  .lector-item{width:100%;min-height:48px;padding:10px 12px;background:#fff;color:var(--texto);border:1px solid #cddce8;border-radius:12px;text-align:left;font:600 .91rem/1.3 var(--fuente);overflow-wrap:anywhere;cursor:pointer;display:flex;align-items:center;gap:8px}
+  .lector-item[aria-pressed="true"]{border-color:#258d6c;background:#e4f6ee;box-shadow:inset 0 0 0 1px #258d6c}
+  .lector-item .lector-marca{flex:none;color:#187758;font-size:1.15rem}
+  #lector-lista-vacia{margin:10px 0;color:var(--texto-suave);font-size:.9rem}
+
+  /* Lector aislado: afecta únicamente a #leer-escuchar. */
+  body:has(#leer-escuchar.activa #lector-activo:not([hidden])) {overflow:hidden;height:100dvh;}
+  body:has(#leer-escuchar.activa #lector-activo:not([hidden])) .pagina {padding:0;max-width:480px;height:100dvh;}
+  #leer-escuchar.activa:has(#lector-activo:not([hidden])){height:100dvh;}
+  #lector-activo{position:relative;width:100%;height:100dvh;overflow:hidden;}
+  #lector-marco{width:100%;height:100%;display:block;border:0;background:white;}
+  #lector-salir{position:absolute;top:3px;left:4px;z-index:2;border-radius:50%;background:#2677cb;color:white;text-decoration:none;width:28px;height:28px;display:grid;place-items:center;font-weight:700;font-size:20px;box-shadow:0 3px 10px #123a6233;}
+  #lector-selector .volver{margin-bottom:10px;}
 </style>
 </head>
 <body>
@@ -549,7 +573,7 @@
       <p>Elige una actividad.</p>
       <ul>
         <li><a class="act destacada" href="#estudio-rapido"><span class="nom">Estudio rápido</span></a></li>
-        <li><span class="act" aria-disabled="true"><span class="nom">Leer y escuchar</span><span class="pronto">Próximamente</span></span></li>
+        <li><a class="act" href="#leer-escuchar"><span class="nom">Leer y escuchar</span></a></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Tarjetas de memoria</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Resumen</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Trípticos</span><span class="pronto">Próximamente</span></span></li>
@@ -588,6 +612,35 @@
       <div id="rapido-decision" class="rapido-resultado" hidden aria-live="polite"></div>
       <div id="rapido-resultado" class="rapido-resultado" hidden aria-live="polite"></div>
       <div id="rapido-recuperacion" class="rapido-recuperacion" hidden aria-live="polite"></div>
+    </div>
+  </section>
+
+
+  <!-- ============ LEER Y ESCUCHAR: VISOR INDEPENDIENTE ============ -->
+  <section class="pantalla provisional" id="leer-escuchar" aria-labelledby="t-leer-escuchar">
+    <div id="lector-selector" class="rapido">
+      <a class="volver" href="#estudiar"><svg><use href="#i-atras"/></svg>Actividades</a>
+      <h2 id="t-leer-escuchar" tabindex="-1">Leer y escuchar</h2>
+      <p>Selecciona una guía de tu biblioteca. La lectura no utiliza Gemini.</p>
+      <p id="lector-tipos-titulo" class="rapido-nota">Elige el formato del documento:</p>
+      <div class="lector-formatos" role="group" aria-labelledby="lector-tipos-titulo">
+        <button type="button" class="lector-formato" data-lector-tipo="pdf" aria-pressed="false">PDF<small>Libros</small></button>
+        <button type="button" class="lector-formato" data-lector-tipo="ppt" aria-pressed="false">PPT<small>Presentaciones</small></button>
+        <button type="button" class="lector-formato" data-lector-tipo="pptx" aria-pressed="false">PPTX<small>Presentaciones</small></button>
+      </div>
+      <div id="lector-documentos" hidden>
+        <label for="lector-busqueda">Buscar documento</label>
+        <input id="lector-busqueda" type="search" placeholder="Escribe el nombre del documento…" autocomplete="off">
+        <p id="lector-lista-vacia" aria-live="polite"></p>
+        <ul id="lector-lista" class="lector-lista" aria-label="Documentos de la categoría seleccionada"></ul>
+      </div>
+      <p class="rapido-nota">PDF con texto seleccionable, PPT y PPTX. Los documentos escaneados requieren reconocimiento adicional.</p>
+      <button type="button" id="lector-abrir" class="boton b-verde" disabled>Leer guía</button>
+      <p id="lector-estado" class="estado-rapido" role="status" aria-live="polite"></p>
+    </div>
+    <div id="lector-activo" hidden>
+      <a id="lector-salir" href="#leer-escuchar" aria-label="Volver a seleccionar una guía" title="Volver a elegir guía">‹</a>
+      <iframe id="lector-marco" title="Área de lectura y voz" referrerpolicy="no-referrer"></iframe>
     </div>
   </section>
 
@@ -715,13 +768,14 @@
 <script>
   // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
   (function () {
-    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'biblioteca', 'progreso', 'acceso'];
+    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'leer-escuchar', 'biblioteca', 'progreso', 'acceso'];
     var titulos = {
       inicio: 'Estudia+',
       subir: 'Subir archivo · Estudia+',
       estudiar: 'Comenzar a estudiar · Estudia+',
       'preguntas-app': 'Preguntas a la app · Estudia+',
       'estudio-rapido': 'Estudio rápido · Estudia+',
+      'leer-escuchar': 'Leer y escuchar · Estudia+',
       biblioteca: 'Biblioteca de libros · Estudia+',
       progreso: 'Mi progreso · Estudia+',
       acceso: 'Acceso · Estudia+'
@@ -1996,6 +2050,149 @@
       else erPrepararLista();
     });
     if (erVisible()) erPrepararLista();
+
+
+    // ===== Lector independiente. No cambia Estudio rápido ni su estado =====
+    (function(){
+      var abrir=document.getElementById('lector-abrir'), busqueda=document.getElementById('lector-busqueda');
+       var tipos=Array.from(document.querySelectorAll('[data-lector-tipo]'));
+       var documentos=document.getElementById('lector-documentos'), listaDom=document.getElementById('lector-lista'), vacia=document.getElementById('lector-lista-vacia');
+      var estado=document.getElementById('lector-estado'), selector=document.getElementById('lector-selector');
+      var activo=document.getElementById('lector-activo'), frame=document.getElementById('lector-marco');
+      var exit=document.getElementById('lector-salir'), listado=[], tipoActual='', seleccionado='', ocupada=false, seq=0;
+      var plantilla="<!doctype html>\n<html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<meta name=\"theme-color\" content=\"#f4f8ff\"><title>Leer y escuchar | Estudia+</title>\n<style>\n:root{--reader-font:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;--reader-size:14.5px;font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#15243d;background:#eaf2fb}\n*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}\nbutton,select{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,select:focus-visible{outline:3px solid #2678d2;outline-offset:2px}\n.app{position:relative;width:100%;max-width:480px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden;background:#fff;box-shadow:0 0 28px #102f5420}\n.reader{height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 26px) 48px calc(env(safe-area-inset-bottom,0px) + 42px) 14px;touch-action:pan-y;font-family:var(--reader-font)}\n.topic{padding:0 0 4px;margin:0 0 4px;border-bottom:1px solid #e5ebf1}\n.topic:last-child{border-bottom:0}\n.topic h2{font-size:var(--reader-size);line-height:1.2;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}\n.topic p{font-size:var(--reader-size);line-height:1.34;font-weight:400;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}\n.navLayer{position:absolute;z-index:10;top:calc(env(safe-area-inset-top,0px) + 2px);left:50%;transform:translateX(-50%);height:29px;display:flex;align-items:center;justify-content:center;pointer-events:none;width:min(100%,290px)}\n.round{height:42px;width:42px;border:0;border-radius:50%;background:#2677cb;color:#fff;box-shadow:0 3px 12px #164a763d;display:grid;place-items:center;flex:none;pointer-events:auto;font-size:20px;line-height:1}\n.navToggle{height:28px;width:28px;position:relative;z-index:2;font-size:16px}\n.navLink{height:28px;border:1px solid #d0dfec;background:#fff;color:#225e9e;font-size:12px;font-weight:700;padding:0 8px;border-radius:15px;box-shadow:0 3px 9px #234d6e20;pointer-events:auto;white-space:nowrap}\n.navLink:disabled{opacity:.4}\n.navSide{display:flex;align-items:center;justify-content:flex-end;gap:5px;min-width:0;flex:1;transition:opacity .18s,transform .18s}\n.navRight{justify-content:flex-start}\n.navSide.closed{opacity:0;transform:translateX(16px);pointer-events:none;visibility:hidden}\n.navRight.closed{transform:translateX(-16px)}\n.navCount{font-size:10px;color:#365572;font-weight:650;white-space:nowrap;background:#f2f8ffcf;border-radius:9px;padding:3px 5px;pointer-events:none}\n.audioToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:49px;width:36px;height:36px;font-size:17px}\n.audioPanel{position:absolute;z-index:11;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:91px;width:min(315px,calc(100% - 98px));padding:3px 5px;background:#f1f7ff;border:1px solid #cddfeb;border-radius:15px;box-shadow:0 7px 18px #1638552e;min-height:36px;display:flex;align-items:center;gap:5px}\n.audioPanel[hidden]{display:none}\n.audioActions{display:flex;flex:1;min-width:0;gap:4px}\n.audioActions button{flex:1;min-width:0;height:30px;border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;font-size:17px;font-weight:700;padding:0 2px;display:grid;place-items:center}\n.audioActions #play{background:#218b68;border-color:#218b68;color:#fff}\n.audioSpeed{display:flex;align-items:center;flex:0 0 auto;margin:0}\n.audioSpeed label{display:none}\n.audioSpeed select{border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;padding:0 2px;min-height:30px;height:30px;font-size:11px;max-width:68px}\n/* Barra lateral discreta para ajustar la lectura sin tapar el texto */\n.fontScale{position:absolute;z-index:8;right:7px;top:50%;transform:translateY(-50%);width:34px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:19px;background:#ddf7ffed;border:1px solid #a4dce9;box-shadow:0 4px 12px #1c668022}\n.fontScale button{height:31px;width:29px;border:0;background:#f5fdff;border-radius:14px;color:#176787;font-size:17px;font-weight:800;line-height:1}\n.fontScale output{font-size:10px;color:#275b6e;font-weight:750;white-space:nowrap}\n.fontToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:7px;width:36px;height:36px;font-size:15px;font-weight:750}\n/* Contraste de lectura independiente de la tipografía y la paginación */\n.themeToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 49px);right:7px;width:36px;height:36px;padding:0;overflow:hidden;background:linear-gradient(90deg,#111 0 50%,#fff 50% 100%);border:2px solid #2677cb;box-shadow:0 3px 12px #164a763d}\n.themeToggle::after{content:'';position:absolute;inset:8px;border:1px solid #7c8796;border-radius:50%;pointer-events:none}\n.app.dark{background:#000;color:#fff}\n.app.dark .reader{color:#fff;background:#000}\n.app.dark .topic{border-bottom-color:#4a4a4a}\n.app.dark .topic h2,.app.dark .topic p{color:#fff}\n.fontPanel{position:absolute;z-index:13;bottom:calc(env(safe-area-inset-bottom,0px) + 93px);right:7px;max-width:calc(100% - 20px);padding:12px;background:#f2faff;border:1px solid #bdd8ec;border-radius:14px;box-shadow:0 7px 18px #1638552e}\n.fontPanel[hidden]{display:none}\n.fontPanel label{display:block;font-size:12px;margin-bottom:6px;color:#214a70;font-weight:700}\n.fontPanel select{width:100%;min-height:37px;padding:0 10px;border:1px solid #a8c8e3;background:white;border-radius:9px;color:#173a55}\n@media(max-height:620px){.reader{padding-left:12px;padding-right:45px}.topic{padding-bottom:3px;margin-bottom:3px}}\n\n</style></head><body>\n<main class=\"app\" id=\"app\">\n<section id=\"reader\" class=\"reader\" role=\"region\" aria-label=\"Lectura del documento\"></section>\n<nav class=\"navLayer\" aria-label=\"Navegación\">\n<div id=\"navLeft\" class=\"navSide closed\"><button type=\"button\" id=\"prev\" class=\"navLink\" aria-label=\"Grupo anterior\">‹ Atrás</button></div>\n<button id=\"navToggle\" type=\"button\" class=\"round navToggle\" aria-expanded=\"false\" aria-controls=\"navLeft navRight\" aria-label=\"Mostrar navegación\">↔</button>\n<div id=\"navRight\" class=\"navSide navRight closed\"><button type=\"button\" id=\"next\" class=\"navLink\" aria-label=\"Grupo siguiente\">Adelante ›</button><span class=\"navCount\" id=\"count\"></span></div>\n</nav>\n<section id=\"audioPanel\" class=\"audioPanel\" aria-label=\"Controles de voz\" hidden>\n <div class=\"audioActions\"><button id=\"play\" type=\"button\" aria-label=\"Escuchar\" title=\"Escuchar\">▶</button><button id=\"pause\" type=\"button\" aria-label=\"Pausar o continuar\" title=\"Pausar o continuar\">⏸</button><button id=\"stop\" type=\"button\" aria-label=\"Detener\" title=\"Detener\">■</button></div>\n <div class=\"audioSpeed\"><label for=\"speed\">Velocidad de voz</label><select id=\"speed\"><option value=\"0.75\">0,75×</option><option value=\"1\" selected>1×</option><option value=\"1.25\">1,25×</option><option value=\"1.5\">1,5×</option><option value=\"1.75\">1,75×</option><option value=\"2\">2×</option></select></div>\n</section>\n<div class=\"fontScale\" aria-label=\"Tamaño de letra\">\n <button type=\"button\" id=\"fontUp\" aria-label=\"Aumentar letra\">+</button>\n <output id=\"fontValue\" aria-live=\"polite\">14,5</output>\n <button type=\"button\" id=\"fontDown\" aria-label=\"Reducir letra\">−</button>\n</div>\n<section id=\"fontPanel\" class=\"fontPanel\" aria-label=\"Elegir tipo de letra\" hidden>\n <label for=\"fontFamily\">Tipo de letra</label>\n <select id=\"fontFamily\">\n  <option value=\"system\">Predeterminada (clara)</option>\n  <option value=\"verdana\">Verdana</option>\n  <option value=\"arial\">Arial</option>\n  <option value=\"georgia\">Georgia</option>\n </select>\n</section>\n<button class=\"round audioToggle\" id=\"audioToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"audioPanel\" aria-label=\"Abrir controles de voz\">♫</button>\n<button class=\"round themeToggle\" id=\"themeToggle\" type=\"button\" aria-label=\"Activar fondo negro y letras blancas\" aria-pressed=\"false\" title=\"Cambiar contraste\"></button>\n<button class=\"round fontToggle\" id=\"fontToggle\" type=\"button\" aria-label=\"Elegir letra\" aria-expanded=\"false\" aria-controls=\"fontPanel\">Aa</button>\n</main>\n<script>\nlet slides=[];\nlet pages=[];\nconst $=id=>document.getElementById(id);\nlet pageIndex=0,navOpen=false,audioOpen=false,fontOpen=false,fontSize=14.5,activeSpeech=false,paused=false,speechToken=0;\nconst synth=('speechSynthesis' in window)?window.speechSynthesis:null;\nfunction esc(s){return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]))}\nfunction topicHtml(s){return '<article class=\"topic\"><h2>'+esc(s.title)+'</h2><p>'+esc(s.body)+'</p></article>'}\nfunction stopSpeech(){speechToken++;if(synth)synth.cancel();activeSpeech=false;paused=false;$('pause').textContent='⏸'}\n// Se mide con los mismos estilos y ancho de lectura antes de armar cada página.\n// Cada bloque se incorpora solo si cabe completo; uno muy largo puede desplazarse verticalmente.\nconst ruler=document.createElement('section');\nruler.className='reader';\nruler.setAttribute('aria-hidden','true');\nruler.style.cssText='position:absolute;left:-9999px;top:0;height:auto;max-height:none;overflow:visible;visibility:hidden;pointer-events:none;';\n$('app').appendChild(ruler);\nfunction calculatePages(){\n const reader=$('reader');\n const availableHeight=reader.clientHeight;\n ruler.style.width=reader.getBoundingClientRect().width+'px';\n ruler.replaceChildren();\n const result=[];\n let start=0;\n while(start<slides.length){\n  let end=start;\n  ruler.innerHTML=topicHtml(slides[start]);\n  end++;\n  while(end<slides.length){\n   const html=topicHtml(slides[end]);\n   ruler.insertAdjacentHTML('beforeend',html);\n   if(ruler.scrollHeight>availableHeight+1){\n    ruler.lastElementChild.remove();\n    break;\n   }\n   end++;\n  }\n  result.push({start,end,items:slides.slice(start,end)});\n  start=end;\n }\n return result;\n}\nfunction render(n,stopAudio=true){\n if(n<0||n>=pages.length)return;\n if(stopAudio&&n!==pageIndex)stopSpeech();\n pageIndex=n;\n const page=pages[n];\n $('reader').innerHTML=page.items.map(topicHtml).join('');\n $('reader').scrollTop=0;\n $('prev').disabled=n===0;$('next').disabled=n===pages.length-1;\n $('count').textContent=(page.start+1)+'–'+page.end+' / '+slides.length;\n}\nfunction repaginate(){\n const currentTopic=pages[pageIndex]?.start??0;\n stopSpeech();\n pages=calculatePages();\n const nextIndex=Math.max(0,pages.findIndex(p=>p.start<=currentTopic&&currentTopic<p.end));\n render(nextIndex,false);\n}\nfunction toggleNav(open){navOpen=open;$('navLeft').classList.toggle('closed',!open);$('navRight').classList.toggle('closed',!open);$('navToggle').setAttribute('aria-expanded',String(open));$('navToggle').setAttribute('aria-label',open?'Cerrar navegación':'Mostrar navegación');$('navToggle').textContent=open?'×':'↔'}\nfunction toggleAudio(open){if(open)toggleFont(false);audioOpen=open;$('audioPanel').hidden=!open;$('audioToggle').setAttribute('aria-expanded',String(open));$('audioToggle').setAttribute('aria-label',open?'Cerrar controles de voz':'Abrir controles de voz');$('audioToggle').textContent=open?'×':'♫'}\nfunction toggleFont(open){fontOpen=open;$('fontPanel').hidden=!open;$('fontToggle').setAttribute('aria-expanded',String(open));$('fontToggle').setAttribute('aria-label',open?'Cerrar tipos de letra':'Elegir tipo de letra')}\nfunction updateSize(next){\n fontSize=Math.max(12,Math.min(22,Math.round(next*2)/2));\n document.documentElement.style.setProperty('--reader-size',fontSize+'px');\n $('fontValue').textContent=String(fontSize).replace('.',',');\n repaginate();\n}\n$('fontUp').addEventListener('click',()=>updateSize(fontSize+0.5));\n$('fontDown').addEventListener('click',()=>updateSize(fontSize-0.5));\n$('fontToggle').addEventListener('click',()=>{const next=!fontOpen;if(next)toggleAudio(false);toggleFont(next)});\n$('fontFamily').addEventListener('change',e=>{\n const families={system:'system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif',verdana:'Verdana,Geneva,sans-serif',arial:'Arial,Helvetica,sans-serif',georgia:'Georgia,\"Times New Roman\",serif'};\n document.documentElement.style.setProperty('--reader-font',families[e.target.value]||families.system);\n repaginate();\n});\n$('themeToggle').addEventListener('click',()=>{\n const dark=$('app').classList.toggle('dark');\n $('themeToggle').setAttribute('aria-pressed',String(dark));\n $('themeToggle').setAttribute('aria-label',dark?'Activar fondo blanco y letras negras':'Activar fondo negro y letras blancas');\n});\n$('navToggle').addEventListener('click',()=>toggleNav(!navOpen));\n$('audioToggle').addEventListener('click',()=>toggleAudio(!audioOpen));\n$('prev').addEventListener('click',()=>render(pageIndex-1));\n$('next').addEventListener('click',()=>render(pageIndex+1));\n$('stop').addEventListener('click',stopSpeech);\n$('play').addEventListener('click',()=>{\n if(!synth){alert('Este navegador no permite lectura en voz alta.');return;}\n stopSpeech();const token=speechToken;\n const texts=pages[pageIndex].items.map(s=>s.title+'. '+s.body);\n let i=0;activeSpeech=true;\n function speakNext(){\n  if(token!==speechToken)return;\n  if(i>=texts.length){activeSpeech=false;paused=false;$('pause').textContent='⏸';return;}\n  const u=new SpeechSynthesisUtterance(texts[i++]);u.lang='es-CL';u.rate=Number($('speed').value);\n  u.onend=speakNext;\n  u.onerror=()=>{if(token===speechToken){activeSpeech=false;paused=false;$('pause').textContent='⏸'}};\n  synth.speak(u);\n }\n speakNext();\n});\n$('pause').addEventListener('click',()=>{\n if(!synth||!activeSpeech)return;\n if(paused){synth.resume();paused=false;$('pause').textContent='⏸'}\n else{synth.pause();paused=true;$('pause').textContent='▶'}\n});\nwindow.addEventListener('pagehide',stopSpeech);\ndocument.addEventListener('visibilitychange',()=>{if(document.hidden&&synth&&activeSpeech&&!paused){synth.pause();paused=true;$('pause').textContent='▶'}});\ndocument.addEventListener('keydown',e=>{if(e.key==='Escape'){toggleNav(false);toggleAudio(false);toggleFont(false)}else if(e.key==='ArrowLeft')render(pageIndex-1);else if(e.key==='ArrowRight')render(pageIndex+1)});\nlet startX=null,startY=null;\n$('reader').addEventListener('touchstart',e=>{if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY}},{passive:true});\n$('reader').addEventListener('touchend',e=>{if(startX===null)return;const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;startX=startY=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.5)render(pageIndex+(dx<0?1:-1))},{passive:true});\nwindow.addEventListener('message', e => {\n  if (e.source !== window.parent || !e.data || e.data.type !== 'ESTUDIA_LECTURA') return;\n  if (!Array.isArray(e.data.slides)) return;\n  stopSpeech();\n  slides=e.data.slides.filter(x=>x && typeof x.title==='string' && typeof x.body==='string');\n  pageIndex=0;\n  if(!slides.length){$('reader').textContent='Esta guía no contiene texto legible.';return;}\n  pages=calculatePages();render(0);\n});\nlet resizeFrame=0;\nwindow.addEventListener('resize',()=>{\n if(!slides.length)return;\n cancelAnimationFrame(resizeFrame);\n resizeFrame=requestAnimationFrame(repaginate);\n});\n<\/script></body></html>";
+      function aviso(s){estado.textContent=s||'';}
+      function volver(){
+        ++seq;
+        if(frame.contentWindow) frame.contentWindow.postMessage({type:'ESTUDIA_LECTURA',slides:[]},'*');
+        frame.removeAttribute('srcdoc');activo.hidden=true;selector.hidden=false;ocupada=false;
+        abrir.disabled=!seleccionado;
+      }
+      exit.addEventListener('click',function(ev){ev.preventDefault();volver();});
+      function normalizarTipo(a){
+        var nombre=String(a.nombre_original||'').toLowerCase();
+        var t=String(a.tipo||'').toLowerCase();
+        if(t==='pdf'||t==='ppt'||t==='pptx')return t;
+        var ext=nombre.match(/\.(pdf|pptx|ppt)$/);
+        return ext?ext[1]:'';
+      }
+      function pintarTipos(){
+        tipos.forEach(function(b){
+          var t=b.dataset.lectorTipo;
+          b.setAttribute('aria-pressed',String(t===tipoActual));
+          var numero=listado.filter(function(a){return normalizarTipo(a)===t}).length;
+          b.querySelector('small').textContent=numero+' archivo'+(numero===1?'':'s');
+        });
+      }
+      function pintarLista(){
+        listaDom.replaceChildren();
+        documentos.hidden=!tipoActual;
+        abrir.disabled=!seleccionado||ocupada;
+        if(!tipoActual)return;
+        var bus=busqueda.value.trim().toLocaleLowerCase('es');
+        var archivos=listado.filter(function(a){return normalizarTipo(a)===tipoActual && String(a.nombre_original||'').toLocaleLowerCase('es').includes(bus)});
+        vacia.textContent=archivos.length?'':(bus?'No hay documentos con ese nombre.':'No tienes documentos de este formato.');
+        archivos.forEach(function(a){
+          var li=document.createElement('li'), b=document.createElement('button'), marca=document.createElement('span'), nombre=document.createElement('span');
+          b.type='button';b.className='lector-item';b.setAttribute('aria-pressed',String(a.id===seleccionado));
+          marca.className='lector-marca';marca.textContent=a.id===seleccionado?'●':'○';marca.setAttribute('aria-hidden','true');
+          nombre.textContent=a.nombre_original||'Documento sin nombre';
+          b.append(marca,nombre);
+          b.addEventListener('click',function(){seleccionado=a.id;pintarLista();});
+          li.appendChild(b);listaDom.appendChild(li);
+        });
+      }
+      async function listar(){
+        var turno=++seq;
+        aviso('Cargando guías…');abrir.disabled=true;
+        try{
+          if(!cliente)throw new Error('Conexión no disponible');
+          var u=await usuarioValido();
+          if(!u)throw new Error('Inicia sesión para consultar tus guías.');
+          var r=await cliente.from('archivos_usuario').select('id,nombre_original,ruta,tipo,estado,tamano').eq('estado','activo').order('creado_en',{ascending:false});
+          if(r.error)throw r.error;
+          if(turno!==seq || location.hash!=='#leer-escuchar')return;
+          listado=(r.data||[]).filter(function(a){return ['ppt','pptx','pdf'].includes(normalizarTipo(a))});
+          pintarTipos();pintarLista();
+          aviso(listado.length?'':'No tienes guías compatibles en tu biblioteca.');
+        }catch(e){
+          if(turno!==seq)return;
+          listado=[];pintarTipos();pintarLista();
+          aviso(e.message==='Inicia sesión para consultar tus guías.'?e.message:'No se pudo cargar la biblioteca.');
+        }
+      }
+      tipos.forEach(function(b){b.addEventListener('click',function(){
+        tipoActual=b.dataset.lectorTipo;seleccionado='';busqueda.value='';aviso('');pintarTipos();pintarLista();
+      });});
+      busqueda.addEventListener('input',pintarLista);
+      function datosPaginados(x){
+        return x.map(function(s){return {title:String(s.title||'Sin título'),body:String(s.body||''),section:String(s.section||'')};});
+      }
+      function inyectar(datos){
+        selector.hidden=true;activo.hidden=false;
+        frame.onload=function(){frame.contentWindow.postMessage({type:'ESTUDIA_LECTURA',slides:datosPaginados(datos)},'*');};
+        frame.srcdoc=plantilla;
+      }
+      function cargarScript(src,globalName){
+        return new Promise(function(resolve,reject){
+          if(window[globalName]){resolve();return;}
+          var t=document.createElement('script');t.src=src;t.onload=resolve;t.onerror=function(){reject(new Error('No se pudo cargar el lector PDF.'));};
+          document.head.appendChild(t);
+        });
+      }
+      async function leerPdf(a){
+        await cargarScript('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js','pdfjsLib');
+        var obj=await cliente.storage.from('estudia-archivos').download(a.ruta);
+        if(obj.error || !obj.data)throw new Error('No se pudo descargar el PDF.');
+        var pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await obj.data.arrayBuffer()),disableWorker:true}).promise;
+        var textos=[];
+        try{
+          for(var i=1;i<=pdf.numPages;i++){
+            var pagina=await pdf.getPage(i), contenido=await pagina.getTextContent();
+            var lineas=[], actual='',y=null;
+            contenido.items.forEach(function(t){
+              var yy=t.transform && t.transform[5];
+              if(y!==null && typeof yy==='number' && Math.abs(yy-y)>2){if(actual.trim())lineas.push(actual.trim());actual='';}
+              actual+=(actual?' ':'')+t.str;
+              if(typeof yy==='number')y=yy;
+            });
+            if(actual.trim())lineas.push(actual.trim());
+            if(lineas.length){textos.push({title:'Página '+i,body:lineas.join('\n')});}
+          }
+        }finally{pdf.destroy();}
+        if(!textos.length)throw new Error('Este PDF no contiene texto seleccionable.');
+        return textos;
+      }
+      abrir.addEventListener('click',async function(){
+        if(ocupada)return;
+        var a=listado.find(function(x){return x.id===seleccionado && normalizarTipo(x)===tipoActual;});if(!a)return;
+        ocupada=true;abrir.disabled=true;
+        var token=seq;
+        aviso('Preparando texto para lectura…');
+        try{
+          var temas;
+          if(a.tipo==='pdf')temas=await leerPdf(a);
+          else{
+            var r=await cliente.functions.invoke('estudio-rapido',{body:{accion:'leer_documento',archivo_id:a.id}});
+            if(r.error){
+              var msg='No se pudo leer PowerPoint. Debes actualizar también la función estudio-rapido en Supabase.';
+              if(r.data && r.data.error)msg=r.data.error;
+              throw new Error(msg);
+            }
+            if(!r.data || !Array.isArray(r.data.temas))throw new Error('El servidor no entregó texto legible.');
+            temas=r.data.temas;
+          }
+          if(seq!==token || location.hash!=='#leer-escuchar')return;
+          aviso('');inyectar(temas);
+        }catch(e){if(seq!==token)return;aviso(e.message||'No se pudo abrir la guía.');}
+        finally{ocupada=false;abrir.disabled=!seleccionado;}
+      });
+      window.addEventListener('hashchange',function(){
+        if(location.hash==='#leer-escuchar'){if(activo.hidden)listar();}
+        else if(!activo.hidden)volver();
+      });
+      if(location.hash==='#leer-escuchar')listar();
+    })();
 
     window.addEventListener('hashchange', mostrar);
     mostrar();
