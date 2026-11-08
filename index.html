@@ -305,90 +305,145 @@
     #rapido-ejercicio .boton {min-height:39px;}
   }
 
-  /* ===== Biblioteca rediseñada (solo presentación) ===== */
-  body:has(#biblioteca.activa){background:linear-gradient(180deg,#f1eefc 0%,#eaf3ff 55%,#f6faff 100%)}
-  body:has(#biblioteca.activa) .pagina,body:has(#preguntas-app.activa) .pagina,body:has(#progreso.activa) .pagina,body:has(#acceso.activa) .pagina{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
-  body:has(#biblioteca.activa) .pagina{max-width:480px;padding-left:12px;padding-right:12px}
-  #biblioteca{min-height:calc(100dvh - 120px)}
-  .bib-cab{position:relative;display:flex;align-items:center;justify-content:center;min-height:44px}
-  .bib-atras{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:var(--texto);text-decoration:none}
-  .bib-atras svg{width:26px;height:26px}
-  .bib-marca{font-weight:800;font-size:1.7rem;letter-spacing:-.03em;color:#131c3d}
-  .bib-marca span{color:#1a6dff}
-  .bib-titular{display:flex;align-items:center;gap:6px;margin-top:2px}
-  .bib-titular svg{flex:none;width:clamp(74px,22vw,104px);height:auto;filter:drop-shadow(0 6px 8px rgba(80,100,180,.2))}
-  .bib-titular h2{margin:0;font-size:clamp(2.1rem,10.5vw,3rem);line-height:1;font-weight:800;letter-spacing:-.035em;color:#0d1240}
-  .bib-sub{margin:2px 0 14px;text-align:right;color:var(--texto-suave);font-size:clamp(.82rem,3.4vw,.98rem)}
-  .bib-buscar{display:flex;gap:10px;align-items:center}
-  .bib-campo{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:50px;padding:0 14px;border-radius:26px;background:#fff;box-shadow:0 6px 18px rgba(90,110,170,.14)}
-  .bib-campo svg{width:22px;height:22px;flex:none;color:#1b2550}
-  .bib-campo input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:1rem;color:var(--texto);outline:0;padding:0}
-  .bib-campo:focus-within{outline:3px solid #1a6dff;outline-offset:2px}
-  .bib-filtro{flex:none;width:50px;height:50px;border-radius:50%;border:0;background:#fff;color:#1b2550;display:grid;place-items:center;box-shadow:0 6px 18px rgba(90,110,170,.14);cursor:pointer}
-  .bib-filtro svg{width:24px;height:24px}
-  .bib-filtro[aria-expanded="true"]{background:#1a6dff;color:#fff}
-  .bib-filtro:focus-visible,.bib-flecha:focus-visible,.circ:focus-visible,.prueba:focus-visible,.bib-nav a:focus-visible{outline:3px solid #131c3d;outline-offset:2px}
-  .bib-paneles{margin-top:10px;padding:12px;border-radius:20px;background:#fff;box-shadow:0 6px 18px rgba(90,110,170,.14);display:grid;gap:8px}
+  /* ===== Biblioteca (diseño aprobado) y Centro de ayuda ===== */
+  html:has(#biblioteca.activa),body:has(#biblioteca.activa),html:has(#ayuda.activa),body:has(#ayuda.activa){height:100%;overflow:hidden;overscroll-behavior:none}
+  body:has(#biblioteca.activa),body:has(#ayuda.activa){background:linear-gradient(180deg,#cfe6f8 0%,#e3f1fb 42%,#cfe4f6 100%)}
+  body:has(#biblioteca.activa) .fondo,body:has(#ayuda.activa) .fondo{display:none}
+  body:has(#preguntas-app.activa) .pagina,body:has(#progreso.activa) .pagina,body:has(#acceso.activa) .pagina{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+  body:has(#biblioteca.activa) .pagina,body:has(#ayuda.activa) .pagina{max-width:480px;height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));padding:0 10px 84px}
+  body:has(#ayuda.activa) .pagina{padding-bottom:10px}
+  #biblioteca.activa,#ayuda.activa{display:flex;flex-direction:column;height:100%;min-height:0;gap:clamp(6px,1.2dvh,10px)}
+  .bib-hero{position:relative;flex:none;height:clamp(108px,18dvh,150px);margin:0 -10px;overflow:hidden;border-radius:0 0 28px 28px;background:radial-gradient(120% 100% at 80% 0%,#eaf6ff 0%,#c3e2f8 55%,#a8d3f0 100%);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .bib-hero.mini{height:clamp(88px,14dvh,112px)}
+  .bib-hero::before{content:"";position:absolute;left:-56px;top:-76px;width:200px;height:170px;border-radius:0 0 100% 0;background:linear-gradient(135deg,#0e5871,#2b86a4)}
+  .bib-hero>svg.arte{position:absolute;bottom:0;height:auto;pointer-events:none}
+  .bib-hero .libros{left:0;width:clamp(78px,25vw,118px)}
+  .bib-hero .monte{right:0;width:clamp(104px,34vw,160px)}
+  .bib-hero>.txt{position:relative;z-index:1}
+  .bib-marca{margin:0;font-weight:800;font-size:clamp(1.5rem,6.6vw,2.1rem);letter-spacing:-.03em;color:#0d1a4a;line-height:1}
+  .bib-marca span{color:#2e9b45}
+  .bib-hero h2{margin:0;font-size:clamp(1.8rem,8.4vw,2.7rem);line-height:1;font-weight:800;letter-spacing:-.035em;color:#0d1a4a}
+  .bib-hero h2::after{content:"";display:block;width:46%;height:3px;margin:3px auto 0;border-radius:3px;background:#2e9b45}
+  .bib-sub{margin:3px 0 0;color:#2d3d63;font-size:clamp(.74rem,3.1vw,.92rem)}
+  .bib-circ{position:absolute;z-index:2;top:max(6px,1.2dvh);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;text-decoration:none;border:0;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .15s ease}
+  .bib-circ:active{transform:scale(.92)}
+  .bib-atras{left:10px;background:linear-gradient(145deg,#2b86a4,#0e5871);color:#fff;box-shadow:0 4px 10px rgba(14,88,113,.35)}
+  .bib-atras svg{width:22px;height:22px}
+  .bib-ayuda{right:10px;background:#fff;color:#0d1a4a;font:800 1.25rem/1 var(--fuente);box-shadow:0 4px 12px rgba(60,90,140,.25)}
+  .bib-buscar{position:relative;flex:none;display:flex;gap:8px;align-items:center}
+  .bib-campo{flex:1;min-width:0;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;border-radius:24px;background:#fff;box-shadow:0 5px 14px rgba(70,110,160,.16)}
+  .bib-campo svg{width:20px;height:20px;flex:none;color:#1b2550}
+  .bib-campo input{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:.9rem;color:var(--texto);outline:0;padding:0;text-overflow:ellipsis}
+  .bib-campo:focus-within{outline:3px solid #1d6f8c;outline-offset:2px}
+  .bib-filtro{flex:none;display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px 0 10px;border-radius:24px;border:0;background:#fff;color:#0d1a4a;font:700 .92rem/1 var(--fuente);box-shadow:0 5px 14px rgba(70,110,160,.16);cursor:pointer}
+  .bib-filtro svg{width:20px;height:20px}
+  .bib-filtro[aria-expanded="true"]{background:#0e5871;color:#fff}
+  .bib-paneles{position:absolute;z-index:15;left:0;right:0;top:calc(100% + 6px);padding:12px;border-radius:20px;background:#fff;box-shadow:0 10px 26px rgba(40,70,120,.28);display:grid;gap:8px}
   .bib-paneles label{font-weight:700;font-size:.85rem;display:grid;gap:4px}
   .bib-paneles select{min-height:44px;border:1px solid #a9b9d6;border-radius:12px;padding:0 10px;font:inherit;background:#fff;color:var(--texto)}
-  .bib-paneles button{min-height:44px;border-radius:12px;border:2px solid #1a6dff;background:#fff;color:#1a56c9;font:700 .92rem/1 var(--fuente);cursor:pointer}
-  .bib-estado{margin:10px 2px 0;min-height:0;font-size:.92rem;color:var(--texto-suave);text-align:center}
+  .bib-paneles button{min-height:44px;border-radius:12px;border:2px solid #0e5871;background:#fff;color:#0e5871;font:700 .92rem/1 var(--fuente);cursor:pointer}
+  .bib-chips{flex:none;display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding:2px}
+  .bib-chips::-webkit-scrollbar{display:none}
+  .bib-chip{flex:1 0 auto;min-height:36px;padding:0 9px;border-radius:999px;border:2px solid #fff;background:rgba(255,255,255,.92);color:#0d1a4a;font:700 clamp(.7rem,3vw,.84rem)/1 var(--fuente);cursor:pointer;box-shadow:0 3px 8px rgba(70,110,160,.14);transition:transform .15s ease,background .2s ease;-webkit-tap-highlight-color:transparent}
+  .bib-chip:active{transform:scale(.96)}
+  .bib-chip[aria-pressed="true"]{background:linear-gradient(180deg,#34a24f,#17722f);border-color:#d9f2df;color:#fff}
+  .bib-estado{margin:6px 8px;min-height:0;font-size:.92rem;color:var(--texto-suave);text-align:center}
   .bib-estado:empty{display:none}
   .bib-estado.error{color:#a12b2b;font-weight:600}.bib-estado.ok{color:#1f7a5a;font-weight:600}
+  .bib-docs{position:relative;flex:1 1 0;min-height:128px;display:flex;flex-direction:column;justify-content:center;padding:8px 4px 6px;border-radius:26px;background:linear-gradient(180deg,rgba(255,255,255,.74),rgba(226,241,252,.72));box-shadow:0 8px 20px rgba(70,110,160,.14)}
+  #bib-zona:not([hidden]){display:flex;flex-direction:column;flex:1;min-height:0}
+  .bib-docs .carr{flex:1;min-height:0}
   .carr{position:relative}
   .carr-pista{position:relative;display:flex;gap:12px;align-items:center;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:none;touch-action:pan-x pan-y}
   .carr-pista::-webkit-scrollbar{display:none}
   .carr-pista>*{scroll-snap-align:center;flex:none}
-  .carr-pista::before,.carr-pista::after{content:"";flex:none;width:calc(50% - var(--mitad) - 12px)}
-  .bib-circulos{--mitad:62px;padding:26px 0 22px;margin-top:6px}
-  .circ{width:124px;height:124px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:radial-gradient(circle at 30% 24%,rgba(255,255,255,.28),transparent 46%),linear-gradient(145deg,var(--c1),var(--c2));color:var(--tx);display:grid;place-items:center;padding:14px;text-align:center;font:800 1rem/1.15 var(--fuente);cursor:pointer;box-shadow:0 8px 18px var(--sombra);transform:scale(.92);transition:transform .22s ease,box-shadow .22s ease;-webkit-tap-highlight-color:transparent}
-  .circ span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;max-width:100%}
-  .circ.corto{font-size:1.12rem}.circ.largo{font-size:.86rem}
-  .circ.sel{transform:scale(1.2);box-shadow:0 0 0 5px rgba(255,255,255,.92),0 0 0 9px var(--aro),0 14px 28px var(--sombra);z-index:2}
-  .bib-flecha{position:absolute;top:50%;margin-top:-20px;width:40px;height:40px;border-radius:50%;border:0;background:#fff;color:#131c3d;display:grid;place-items:center;box-shadow:0 4px 12px rgba(60,70,130,.25);cursor:pointer;z-index:3}
-  .bib-flecha svg{width:22px;height:22px}
-  .bib-flecha.izq{left:0}.bib-flecha.der{right:0}.bib-flecha.der svg{transform:scaleX(-1)}
-  .bib-flecha:disabled{opacity:.35;cursor:default}
-  .bib-puntos{display:flex;justify-content:center;gap:9px;min-height:12px;margin-top:-4px;font-size:.82rem;font-weight:700;color:var(--texto-suave)}
-  .bib-puntos i{width:11px;height:11px;border-radius:50%;background:#c3d2f7}
-  .bib-puntos i.on{background:#1a6dff}
-  .bib-card{margin-top:16px;border-radius:26px;background:#fff;box-shadow:0 8px 22px rgba(90,110,170,.16);padding:16px 14px 14px;position:relative;overflow:hidden;animation:bibEntra .25s ease}
-  @keyframes bibEntra{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
-  .bib-card::before{content:"";position:absolute;right:-50px;top:-40px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,var(--aro) 0,transparent 68%);opacity:.75;pointer-events:none}
-  .bib-card-fila{position:relative;display:flex;gap:12px;align-items:flex-start}
-  .bib-doc{flex:none;width:58px;height:70px;border-radius:12px;background:linear-gradient(#fff,#eef1fa);border:2px solid #d5dcee;position:relative;box-shadow:0 4px 8px rgba(80,100,180,.15)}
-  .bib-doc b{position:absolute;left:-8px;right:-8px;bottom:9px;height:24px;border-radius:7px;display:grid;place-items:center;color:#fff;font:800 .82rem/1 var(--fuente);background:var(--ins,#dc2626)}
-  .bib-card-info{min-width:0;flex:1}
-  .bib-nombre{margin:0;font-weight:800;font-size:1.05rem;line-height:1.25;color:#0d1240;overflow-wrap:break-word;word-break:normal;hyphens:none}
-  .bib-meta{margin:4px 0 0;color:var(--texto-suave);font-size:.92rem}
-  .bib-acc{position:relative;display:flex;gap:10px;margin-top:14px}
-  .bib-btn{flex:1;min-height:50px;border-radius:25px;font:800 1rem/1 var(--fuente);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
-  .bib-btn svg{width:22px;height:22px}
-  .bib-btn.abrir{border:0;color:#fff;background:linear-gradient(180deg,#2b83ff,#0a4fe0);box-shadow:0 6px 14px rgba(10,79,224,.35)}
-  .bib-btn.elim{border:2px solid #e0303b;color:#c4121f;background:#fff}
+  .bib-slides{height:100%;gap:0;align-items:stretch}
+  .bib-slides>.bib-slide{flex:0 0 100%;min-width:0;display:flex;padding:2px 22px;scroll-snap-stop:always}
+  .bib-doccard{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:8px;padding:12px 12px 10px;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#f4f9fe 55%,var(--tinte,#fdeedd) 100%);box-shadow:0 6px 16px rgba(70,110,160,.18);overflow:hidden;opacity:.75;transform:scale(.97);transition:opacity .25s ease,transform .25s ease}
+  .bib-slide.sel .bib-doccard{opacity:1;transform:none}
+  .bib-fila{display:flex;gap:14px;align-items:flex-start;min-height:0}
+  .bib-doc{flex:none;position:relative;width:clamp(44px,13vw,56px);height:clamp(54px,16vw,70px);margin-left:6px;border-radius:8px 14px 8px 8px;background:linear-gradient(#fff,#eef2fb);border:2px solid #b9c6e6;box-shadow:0 4px 8px rgba(80,100,180,.15)}
+  .bib-doc::before{content:"";position:absolute;left:20%;right:20%;top:22%;height:2px;border-radius:2px;background:#c5cfe8;box-shadow:0 7px 0 #c5cfe8}
+  .bib-doc b{position:absolute;left:-8px;right:-8px;bottom:8px;height:22px;border-radius:7px;display:grid;place-items:center;color:#fff;font:800 .74rem/1 var(--fuente);background:var(--ins,#d9483b)}
+  .bib-doccard-info{min-width:0;flex:1}
+  .bib-nombre{margin:0;font-weight:800;font-size:clamp(.92rem,3.9vw,1.08rem);line-height:1.22;color:#0d1a4a;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .bib-meta{margin:4px 0 0;color:var(--texto-suave);font-size:clamp(.78rem,3.2vw,.92rem)}
+  .bib-acc{display:flex;gap:8px}
+  .bib-btn{flex:1;min-height:clamp(38px,6dvh,46px);padding:0 8px;border-radius:24px;font:800 .95rem/1 var(--fuente);display:flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .12s ease,filter .15s ease}
+  .bib-btn svg{width:20px;height:20px;flex:none}
+  .bib-btn.abrir{border:0;color:#fff;background:linear-gradient(180deg,#34a24f,#17722f);box-shadow:0 5px 12px rgba(23,114,47,.32)}
+  .bib-btn.elim{border:2px solid #d9483b;color:#c4271f;background:#fff}
   .bib-btn:disabled{opacity:.55;cursor:not-allowed}
   .bib-btn:active{transform:scale(.97)}
-  .bib-pruebas{margin-top:18px;padding:16px 12px 14px;border-radius:26px;background:linear-gradient(180deg,#dff7ea,#e8f8ef);box-shadow:0 8px 22px rgba(90,110,170,.10)}
-  .bib-pruebas-cab{display:flex;gap:10px;align-items:center;padding:0 4px}
-  .bib-pruebas-cab svg{flex:none;width:44px;height:44px;color:#14a06f}
-  .bib-pruebas h2{margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em;color:#0d1240;line-height:1.1}
-  .bib-pruebas-cab p{margin:2px 0 0;color:var(--texto-suave);font-size:.9rem}
-  .bib-pruebas .carr{margin-top:10px}
-  .bib-tarjetas{--mitad:55px;padding:10px 0 12px}
-  .prueba{width:110px;min-height:98px;border-radius:24px;border:3px solid var(--borde);background:linear-gradient(160deg,#fff 0,var(--tinte) 70%);color:#0d1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px;text-align:center;font:800 .95rem/1.15 var(--fuente);cursor:pointer;box-shadow:0 6px 14px rgba(70,90,150,.14);transform:scale(.94);transition:transform .22s ease,box-shadow .22s ease}
-  .prueba span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:break-word;max-width:100%}
-  .prueba small{font-weight:500;font-size:.78rem;color:#33406a}
-  .prueba.sel{transform:scale(1.08);box-shadow:0 0 0 3px #fff,0 0 0 6px var(--aro),0 10px 20px rgba(70,90,150,.22)}
-  .bib-pruebas .bib-flecha{width:36px;height:36px;margin-top:-24px}
-  .bib-abrir-prueba{margin-top:6px;width:100%;color:#fff;border:0;background:linear-gradient(180deg,#1fb585,#0e8d63);box-shadow:0 6px 14px rgba(14,141,99,.3)}
-  .bib-nota{margin:8px 4px 0;font-size:.82rem;color:var(--texto-suave);text-align:center}
-  .bib-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom,0px));width:min(calc(100% - 16px),464px);z-index:20;display:none;grid-template-columns:repeat(4,1fr);gap:2px;padding:6px;border-radius:30px;background:rgba(255,255,255,.96);box-shadow:0 8px 26px rgba(60,70,130,.22)}
+  .bib-flecha{position:absolute;top:50%;margin-top:-19px;width:38px;height:38px;border-radius:50%;border:0;background:#fff;color:#0d1a4a;display:grid;place-items:center;box-shadow:0 4px 12px rgba(60,70,130,.25);cursor:pointer;z-index:3;-webkit-tap-highlight-color:transparent}
+  .bib-flecha svg{width:20px;height:20px}
+  .bib-flecha.izq{left:-2px}.bib-flecha.der{right:-2px}.bib-flecha.der svg{transform:scaleX(-1)}
+  .bib-flecha:active{transform:scale(.92)}
+  .bib-flecha:disabled{opacity:.35;cursor:default}
+  .bib-puntos{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:4px;font-weight:700;font-size:.82rem;color:#1b2550}
+  .bib-puntos:empty{display:none}
+  .bib-dots{display:flex;gap:7px}.bib-dots i{width:9px;height:9px;border-radius:50%;background:#b7cbe6}.bib-dots i.on{background:#2e9b45}
+  .bib-pruebas{flex:none;padding:10px 8px;border-radius:26px;background:linear-gradient(180deg,#d9f3e1,#e6f7ec);box-shadow:0 8px 20px rgba(70,110,160,.12)}
+  .bib-pruebas-cab{display:flex;gap:10px;align-items:center;padding:0 6px}
+  .bib-pruebas-cab svg{flex:none;width:clamp(30px,9vw,40px);height:clamp(30px,9vw,40px);color:#17722f}
+  .bib-pruebas h2{margin:0;font-size:clamp(1.25rem,5.6vw,1.6rem);font-weight:800;letter-spacing:-.02em;color:#0d1a4a;line-height:1.1}
+  .bib-pruebas-cab p{margin:1px 0 0;color:#3d4f6e;font-size:clamp(.72rem,3vw,.88rem)}
+  .bib-pruebas .carr{margin-top:6px}
+  .bib-tarjetas{--mitad:54px;padding:6px 0 8px}
+  .bib-tarjetas::before,.bib-tarjetas::after{content:"";flex:none;width:calc(50% - var(--mitad) - 12px)}
+  .prueba{width:108px;min-height:clamp(62px,10dvh,90px);border-radius:20px;border:2px solid #c3e5cc;background:linear-gradient(160deg,#fff 0,#eaf8ef 80%);color:#0d1a4a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px;text-align:center;font:800 .88rem/1.12 var(--fuente);cursor:pointer;box-shadow:0 5px 12px rgba(70,110,100,.14);transform:scale(.94);transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;-webkit-tap-highlight-color:transparent}
+  .prueba svg{width:24px;height:24px;color:#17722f;flex:none}
+  .prueba .tit{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;max-width:100%}
+  .prueba small{font-weight:500;font-size:.74rem;color:#33406a}
+  .prueba.sel{transform:scale(1.06);border-color:#2e9b45;box-shadow:0 0 0 2px #fff,0 0 0 4px #2e9b45,0 8px 16px rgba(23,114,47,.22)}
+  .bib-pruebas .bib-flecha{width:34px;height:34px;margin-top:-22px}
+  .bib-abrir-prueba{width:100%;flex:none;margin-top:2px;min-height:clamp(38px,5.6dvh,46px)}
+  .bib-nota{display:none;margin:6px 4px 0;font-size:.8rem;color:var(--texto-suave);text-align:center}
+  @media (min-height:780px){.bib-nota{display:block}}
+  .bib-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:max(8px,env(safe-area-inset-bottom,0px));width:min(calc(100% - 16px),464px);z-index:20;display:none;grid-template-columns:repeat(5,1fr);gap:1px;padding:5px;border-radius:28px;background:rgba(255,255,255,.96);box-shadow:0 8px 26px rgba(60,70,130,.22)}
   body:has(#biblioteca.activa) .bib-nav,body:has(#preguntas-app.activa) .bib-nav,body:has(#progreso.activa) .bib-nav,body:has(#acceso.activa) .bib-nav{display:grid}
-  .bib-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:56px;padding:4px 2px;border-radius:24px;color:#2a3558;text-decoration:none;font:600 clamp(.72rem,3.2vw,.9rem)/1.1 var(--fuente);text-align:center}
-  .bib-nav svg{width:28px;height:28px}
-  .bib-nav a[aria-current="page"]{background:#dcebff;color:#1a56c9;font-weight:800}
-  @media (max-width:340px){.bib-card-fila{flex-direction:column}.bib-acc{flex-direction:column}}
-  @media (prefers-reduced-motion:reduce){.circ,.prueba,.bib-card{transition:none;animation:none}}
+  .bib-nav a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:clamp(50px,8dvh,58px);padding:4px 1px;border-radius:22px;color:#2a3558;text-decoration:none;font:600 clamp(.62rem,2.9vw,.76rem)/1.05 var(--fuente);text-align:center;-webkit-tap-highlight-color:transparent;transition:background .2s ease}
+  .bib-nav svg{width:clamp(22px,6vw,26px);height:clamp(22px,6vw,26px)}
+  .bib-nav a:active{transform:scale(.96)}
+  .bib-nav a[aria-current="page"]{background:linear-gradient(180deg,#d4e9fb,#bcdcf6);color:#12609a;font-weight:800}
+  .bib-filtro:focus-visible,.bib-chip:focus-visible,.bib-flecha:focus-visible,.prueba:focus-visible,.bib-nav a:focus-visible,.bib-circ:focus-visible,.bib-btn:focus-visible,.ay-volver:focus-visible,.ay-preg:focus-visible{outline:3px solid #131c3d;outline-offset:2px}
+  /* Centro de ayuda */
+  .ay-scroll{flex:1 1 0;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:2px 2px 8px;display:grid;gap:10px;align-content:start}
+  .ay-lista{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .ay-item{background:#fff;border-radius:18px;box-shadow:0 4px 12px rgba(70,110,160,.14);overflow:hidden}
+  .ay-preg{width:100%;display:flex;align-items:center;gap:10px;min-height:48px;padding:10px 14px;border:0;background:transparent;color:#0d1a4a;font:700 .95rem/1.25 var(--fuente);text-align:left;cursor:pointer}
+  .ay-preg::after{content:"";flex:none;width:9px;height:9px;margin-left:auto;border-right:2.5px solid #2e9b45;border-bottom:2.5px solid #2e9b45;transform:rotate(45deg);transition:transform .2s ease}
+  .ay-preg[aria-expanded="true"]::after{transform:rotate(-135deg)}
+  .ay-resp{margin:0;padding:0 14px 12px;color:#2d3d63;line-height:1.45;font-size:.93rem}
+  .ay-bloque{padding:14px;border-radius:22px;background:linear-gradient(180deg,#d9f3e1,#e6f7ec)}
+  .ay-bloque h3{margin:0 0 4px;font-size:1rem;color:#0d1a4a}
+  .ay-bloque p{margin:0 0 10px;color:#2d3d63;line-height:1.45}
+  .ay-bloque p:last-child{margin-bottom:0}
+  .ay-form textarea{display:block;width:100%;min-height:64px;resize:vertical;border:1px solid #a9c7d8;border-radius:14px;padding:10px 12px;font:inherit;background:#fff;color:var(--texto)}
+  .ay-form .bib-btn{width:100%;margin-top:8px}
+  .ay-respuesta{margin-top:10px;padding:12px 14px;border-radius:16px;background:#fff;color:#2d3d63;line-height:1.45}
+  .ay-respuesta strong{display:block;color:#0d1a4a;margin-bottom:4px}
+  .ay-respuesta:empty{display:none}
+  .ay-volver{flex:none;display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:26px;color:#fff;text-decoration:none;font:800 1rem/1 var(--fuente);background:linear-gradient(180deg,#34a24f,#17722f);box-shadow:0 6px 14px rgba(23,114,47,.32);transition:transform .12s ease}
+  .ay-volver:active{transform:scale(.98)}
+  .ay-volver svg{width:20px;height:20px}
+  @media (max-width:340px){.bib-btn{font-size:.85rem;gap:4px}.bib-btn svg{width:18px;height:18px}}
+  @media (max-height:640px){
+    .bib-hero{height:80px}.bib-hero.mini{height:78px}.bib-sub{display:none}.bib-marca{font-size:1.2rem}.bib-hero h2{font-size:1.5rem}
+    #biblioteca.activa{gap:6px}
+    .bib-campo,.bib-filtro{min-height:40px}.bib-chip{min-height:32px}
+    .bib-docs{min-height:112px}.bib-doccard{padding:8px 10px}.bib-nombre{-webkit-line-clamp:2}
+    .bib-pruebas{padding:8px}.bib-pruebas-cab p{display:none}.prueba small{display:none}.prueba{min-height:54px}.bib-tarjetas{padding:4px 0 6px}
+    .bib-abrir-prueba{min-height:36px}
+    .bib-nav a{min-height:46px}.bib-nav svg{width:20px;height:20px}
+    body:has(#biblioteca.activa) .pagina{padding-bottom:74px}
+  }
+  @media (max-height:520px){
+    html:has(#biblioteca.activa),body:has(#biblioteca.activa){height:auto;overflow-y:auto}
+    body:has(#biblioteca.activa) .pagina,#biblioteca.activa{height:auto}
+    .bib-docs{min-height:150px}
+  }
+  @media (prefers-reduced-motion:reduce){.bib-doccard,.prueba,.bib-chip,.bib-btn,.bib-circ,.ay-preg::after{transition:none}}
 
 
   /* Selector por formato de Leer y escuchar, aislado de la Biblioteca y Estudio rápido. */
@@ -485,6 +540,11 @@
       <path d="M42 107C85 102 135 82 169 42" fill="none" stroke="#7a5fc9" stroke-width="12" stroke-linecap="round"/>
       <path d="M160 32l27-7-4 27z" fill="#7a5fc9" stroke="#7a5fc9" stroke-width="6" stroke-linejoin="round"/>
     </symbol>
+    <symbol id="i-birrete" viewBox="0 0 24 24"><path d="M12 4 1.5 9.2 12 14.4l8.5-4.2V16h2V9.2zM5.5 12.8v4c0 1.8 3 3.4 6.5 3.4s6.5-1.6 6.5-3.4v-4L12 16.2z" fill="currentColor"/></symbol>
+    <symbol id="i-rayo" viewBox="0 0 24 24"><path d="M13.5 2.5 5.5 13.5h6l-1 8 8-11h-6z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chev-abajo" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-hero-libros" viewBox="0 0 150 110"><path d="M8 84q33-14 66 2v20q-33-14-66-2z" fill="#f8f2e4" stroke="#c9b98f" stroke-width="2"/><path d="M142 84q-33-14-66 2v20q33-14 66-2z" fill="#fffaf0" stroke="#c9b98f" stroke-width="2"/><rect x="24" y="64" width="92" height="17" rx="4" fill="#2b78b8"/><rect x="28" y="70" width="84" height="5" rx="2" fill="#a9cdea"/><rect x="34" y="46" width="82" height="18" rx="4" fill="#3f9b4a"/><rect x="38" y="52" width="74" height="5" rx="2" fill="#bfe3c2"/><path d="M78 44c-14-16-4-30 8-34 6 14 2 26-8 34z" fill="#5cb85c"/><path d="M76 44c-16-6-22-18-18-28 14 2 22 12 18 28z" fill="#3f9b4a"/></symbol>
+    <symbol id="ic-hero-monte" viewBox="0 0 220 120"><path d="M20 120 100 20l30 38 20-18 50 80z" fill="#9dbfdc"/><path d="M100 20 78 48l12-5 10 12 12-12 10 6z" fill="#fff"/><path d="M150 40l-12 14 8-3 6 8 6-8 8 4z" fill="#fff" opacity=".9"/><path d="M168 120l12-36 12 36zM184 120l14-44 14 44zM200 120l10-30 10 30z" fill="#2f8f46"/><path d="M172 104l8-22 8 22zM190 98l8-26 8 26z" fill="#4fae5a"/></symbol>
   </defs>
 </svg>
 
@@ -662,37 +722,46 @@
   </section>
 
   <section class="pantalla provisional" id="biblioteca" aria-labelledby="t-biblioteca">
-    <div class="bib-cab">
-      <a class="bib-atras" href="#inicio" aria-label="Volver al inicio"><svg aria-hidden="true"><use href="#i-atras"/></svg></a>
-      <span class="bib-marca" aria-hidden="true">Estudia<span>+</span></span>
-    </div>
-    <div class="bib-titular">
-      <svg viewBox="0 0 280 220" aria-hidden="true"><use href="#ic-biblio"/></svg>
-      <h2 id="t-biblioteca" tabindex="-1">Biblioteca</h2>
-    </div>
-    <p class="bib-sub">Tus guías y documentos. Solo tú puedes verlos.</p>
+    <header class="bib-hero">
+      <svg class="arte libros" viewBox="0 0 150 110" aria-hidden="true"><use href="#ic-hero-libros"/></svg>
+      <svg class="arte monte" viewBox="0 0 220 120" aria-hidden="true"><use href="#ic-hero-monte"/></svg>
+      <a class="bib-circ bib-atras" href="#inicio" aria-label="Volver al inicio"><svg aria-hidden="true"><use href="#i-atras"/></svg></a>
+      <a class="bib-circ bib-ayuda" id="bib-ayuda" href="#ayuda" aria-label="Centro de ayuda" title="Centro de ayuda">?</a>
+      <div class="txt">
+        <p class="bib-marca" aria-hidden="true">Estudia<span>+</span></p>
+        <h2 id="t-biblioteca" tabindex="-1">Biblioteca</h2>
+        <p class="bib-sub">Tus documentos de estudio.</p>
+      </div>
+    </header>
 
     <div class="bib-buscar">
       <label class="bib-campo"><svg aria-hidden="true"><use href="#i-lupa"/></svg>
         <input id="bib-q" type="search" placeholder="Buscar en mi biblioteca..." autocomplete="off" aria-label="Buscar en mi biblioteca"></label>
-      <button type="button" class="bib-filtro" id="bib-filtro" aria-expanded="false" aria-controls="bib-paneles" aria-label="Filtros"><svg aria-hidden="true"><use href="#i-filtro"/></svg></button>
+      <button type="button" class="bib-filtro" id="bib-filtro" aria-expanded="false" aria-controls="bib-paneles"><svg aria-hidden="true"><use href="#i-filtro"/></svg>Filtros<svg aria-hidden="true" style="width:16px;height:16px"><use href="#i-chev-abajo"/></svg></button>
+      <div class="bib-paneles" id="bib-paneles" hidden>
+        <label>Fecha de incorporación<select id="bib-f-fecha"><option value="todas">Cualquier fecha</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="365">Últimos 12 meses</option></select></label>
+        <label>Orden<select id="bib-f-orden"><option value="recientes">Más recientes primero</option><option value="antiguos">Más antiguos primero</option><option value="az">Alfabético (A–Z)</option></select></label>
+        <button type="button" id="bib-f-limpiar">Quitar filtros</button>
+      </div>
     </div>
-    <div class="bib-paneles" id="bib-paneles" hidden>
-      <label>Tipo de archivo<select id="bib-f-tipo"><option value="todos">Todos</option><option value="pdf">PDF</option><option value="word">Word (DOC, DOCX)</option><option value="ppt">PowerPoint (PPT, PPTX)</option><option value="img">Imagen (JPG, PNG)</option></select></label>
-      <label>Fecha de incorporación<select id="bib-f-fecha"><option value="todas">Cualquier fecha</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="365">Últimos 12 meses</option></select></label>
-      <label>Orden<select id="bib-f-orden"><option value="recientes">Más recientes primero</option><option value="antiguos">Más antiguos primero</option><option value="az">Alfabético (A–Z)</option></select></label>
-      <button type="button" id="bib-f-limpiar">Quitar filtros</button>
+    <div class="bib-chips" id="bib-chips" role="group" aria-label="Filtrar por tipo de documento">
+      <button type="button" class="bib-chip" data-tipo="todos" aria-pressed="true">Todos</button>
+      <button type="button" class="bib-chip" data-tipo="pdf" aria-pressed="false">PDF</button>
+      <button type="button" class="bib-chip" data-tipo="word" aria-pressed="false">Word</button>
+      <button type="button" class="bib-chip" data-tipo="ppt" aria-pressed="false">PowerPoint</button>
+      <button type="button" class="bib-chip" data-tipo="img" aria-pressed="false">Imágenes</button>
     </div>
 
-    <p class="bib-estado" id="estado-biblioteca" role="status" aria-live="polite"></p>
-    <div id="bib-zona" hidden>
-      <div class="carr" role="group" aria-label="Carrusel de guías">
-        <button type="button" class="bib-flecha izq" id="bib-prev" aria-label="Guía anterior"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
-        <div class="carr-pista bib-circulos" id="lista-archivos" tabindex="0"></div>
-        <button type="button" class="bib-flecha der" id="bib-next" aria-label="Guía siguiente"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+    <div class="bib-docs">
+      <p class="bib-estado" id="estado-biblioteca" role="status" aria-live="polite"></p>
+      <div id="bib-zona" hidden>
+        <div class="carr" role="group" aria-label="Carrusel de documentos">
+          <button type="button" class="bib-flecha izq" id="bib-prev" aria-label="Documento anterior"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+          <div class="carr-pista bib-slides" id="lista-archivos" tabindex="0"></div>
+          <button type="button" class="bib-flecha der" id="bib-next" aria-label="Documento siguiente"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
+        </div>
+        <div class="bib-puntos" id="bib-puntos" aria-hidden="true"></div>
       </div>
-      <div class="bib-puntos" id="bib-puntos" aria-hidden="true"></div>
-      <article class="bib-card" id="bib-card" aria-live="polite"></article>
     </div>
 
     <section class="bib-pruebas" aria-labelledby="titulo-pruebas-guardadas">
@@ -707,10 +776,45 @@
           <div class="carr-pista bib-tarjetas" id="lista-pruebas-guardadas" tabindex="0"></div>
           <button type="button" class="bib-flecha der" id="bp-next" aria-label="Prueba siguiente"><svg aria-hidden="true"><use href="#i-atras"/></svg></button>
         </div>
-        <button type="button" class="bib-btn bib-abrir-prueba" id="bp-abrir">Abrir prueba</button>
+        <button type="button" class="bib-btn abrir bib-abrir-prueba" id="bp-abrir">Abrir prueba</button>
         <p class="bib-nota">Se conservan aunque elimines el documento original.</p>
       </div>
     </section>
+  </section>
+
+  <!-- ============ CENTRO DE AYUDA (independiente de «Preguntas a la app») ============ -->
+  <section class="pantalla provisional" id="ayuda" aria-labelledby="t-ayuda">
+    <header class="bib-hero mini">
+      <svg class="arte libros" viewBox="0 0 150 110" aria-hidden="true"><use href="#ic-hero-libros"/></svg>
+      <svg class="arte monte" viewBox="0 0 220 120" aria-hidden="true"><use href="#ic-hero-monte"/></svg>
+      <div class="txt">
+        <p class="bib-marca" aria-hidden="true">Estudia<span>+</span></p>
+        <h2 id="t-ayuda" tabindex="-1">Centro de ayuda</h2>
+      </div>
+    </header>
+    <div class="ay-scroll">
+      <label class="bib-campo"><svg aria-hidden="true"><use href="#i-lupa"/></svg>
+        <input id="ay-q" type="search" placeholder="Buscar en la ayuda..." autocomplete="off" aria-label="Buscar en la ayuda"></label>
+      <p class="bib-estado" id="ay-vacio" role="status" aria-live="polite"></p>
+      <ul class="ay-lista" id="ay-lista" aria-label="Preguntas frecuentes"></ul>
+      <section class="ay-bloque" aria-labelledby="ay-t-archivos">
+        <h3 id="ay-t-archivos">¿Qué archivos puedo subir a Estudia+?</h3>
+        <p>Puedes cargar documentos PDF, archivos Word, presentaciones PowerPoint e imágenes en los formatos compatibles con la aplicación.</p>
+        <h3>¿Cuál es el tamaño máximo permitido?</h3>
+        <p>Cada archivo puede tener un tamaño máximo de 50 MB.</p>
+      </section>
+      <section class="ay-bloque" aria-labelledby="ay-t-consulta">
+        <h3 id="ay-t-consulta">¿No encuentras tu duda?</h3>
+        <p>Escribe tu pregunta sobre el funcionamiento de la Biblioteca.</p>
+        <form class="ay-form" id="ay-form" novalidate>
+          <label for="ay-texto" class="sr" style="position:absolute;left:-9999px">Tu pregunta sobre la Biblioteca</label>
+          <textarea id="ay-texto" rows="2" maxlength="300" placeholder="Por ejemplo: ¿cómo elimino un documento?"></textarea>
+          <button type="submit" class="bib-btn abrir">Consultar</button>
+        </form>
+        <div class="ay-respuesta" id="ay-respuesta" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+    <a class="ay-volver" id="ay-volver" href="#biblioteca"><svg aria-hidden="true"><use href="#i-atras"/></svg>Volver a Biblioteca</a>
   </section>
 
   <section class="pantalla provisional" id="progreso" aria-labelledby="t-progreso">
@@ -756,6 +860,7 @@
 <nav class="bib-nav" id="bib-nav" aria-label="Navegación principal">
   <a href="#inicio" data-t="inicio"><svg aria-hidden="true"><use href="#i-casa"/></svg>Inicio</a>
   <a href="#preguntas-app" data-t="preguntas-app"><svg aria-hidden="true"><use href="#i-chat-o"/></svg>Consulta IA</a>
+  <a href="#estudio-rapido" data-t="estudio-rapido"><svg aria-hidden="true"><use href="#i-rayo"/></svg>Estudio rápido</a>
   <a href="#progreso" data-t="progreso"><svg aria-hidden="true"><use href="#i-barras-o"/></svg>Mi progreso</a>
   <a href="#acceso" data-t="acceso"><svg aria-hidden="true"><use href="#i-persona"/></svg>Mi cuenta</a>
 </nav>
@@ -769,7 +874,7 @@
 <script>
   // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
   (function () {
-    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'leer-escuchar', 'biblioteca', 'progreso', 'acceso'];
+    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'leer-escuchar', 'biblioteca', 'ayuda', 'progreso', 'acceso'];
     var titulos = {
       inicio: 'Estudia+',
       subir: 'Subir archivo · Estudia+',
@@ -778,6 +883,7 @@
       'estudio-rapido': 'Estudio rápido · Estudia+',
       'leer-escuchar': 'Leer y escuchar · Estudia+',
       biblioteca: 'Biblioteca de libros · Estudia+',
+      ayuda: 'Centro de ayuda · Estudia+',
       progreso: 'Mi progreso · Estudia+',
       acceso: 'Acceso · Estudia+'
     };
@@ -1104,7 +1210,7 @@
     var BIB_PALETA = [["#e60f0f","#ad0b0b","#fff"],["#871d1d","#541212","#fff"],["#d8360e","#9e280a","#fff"],["#87321d","#541f12","#fff"],["#c0540c","#863b09","#fff"],["#87471d","#542c12","#fff"],["#9e680a","#654206","#fff"],["#87601d","#543c12","#fff"],["#f4d952","#f0cc19","#131c3d"],["#82711c","#504511","#fff"],["#e9f452","#e2f019","#131c3d"],["#707619","#40430e","#fff"],["#bef452","#a9f019","#131c3d"],["#5d7e1b","#384c10","#fff"],["#88f452","#61f019","#131c3d"],["#3e821c","#265011","#fff"],["#098613","#054d0b","#fff"],["#1c8224","#115016","#fff"],["#09863d","#054d23","#fff"],["#1c8246","#11502b","#fff"],["#088155","#05482f","#fff"],["#1c825d","#115039","#fff"],["#08816d","#05483d","#fff"],["#1c8271","#115045","#fff"],["#087d81","#054648","#fff"],["#1c7f82","#114e50","#fff"],["#0a7d99","#064e60","#fff"],["#1d7187","#124754","#fff"],["#0c78b6","#08527d","#fff"],["#1d6087","#123c54","#fff"],["#0f6eeb","#0b53b1","#fff"],["#1d4b87","#122f54","#fff"],["#2253f1","#0d39c9","#fff"],["#1d3587","#122154","#fff"],["#2229f1","#0d13c9","#fff"],["#1d2087","#121454","#fff"],["#4c22f1","#330dc9","#fff"],["#321d87","#1f1254","#fff"],["#7c22f1","#5f0dc9","#fff"],["#4b1d87","#2f1254","#fff"],["#a522f1","#840dc9","#fff"],["#601d87","#3c1254","#fff"],["#c10edd","#8f0aa3","#fff"],["#781d87","#4b1254","#fff"],["#ce0dbb","#950987","#fff"],["#871d7c","#54124e","#fff"],["#d80e8e","#9e0a68","#fff"],["#871d60","#54123c","#fff"],["#e10e4e","#a80b3a","#fff"],["#871d3c","#541226","#fff"]];
     var bibItems = [], bibSelId = null, bibFiltro = { q: '', tipo: 'todos', fecha: 'todas', orden: 'recientes' }, bibVisibles = [];
     var bpItems = [], bpSel = null;
-    var bibQ = document.getElementById('bib-q'), bibZona = document.getElementById('bib-zona'), bibCard = document.getElementById('bib-card');
+    var bibQ = document.getElementById('bib-q'), bibZona = document.getElementById('bib-zona');
     var bibPista = document.getElementById('lista-archivos'), bibPuntos = document.getElementById('bib-puntos');
     var bpZona = document.getElementById('bp-zona'), bpPista = document.getElementById('lista-pruebas-guardadas'), bpAbrir = document.getElementById('bp-abrir');
     function bibHash(s) { var h = 2166136261; s = String(s); for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -1177,13 +1283,13 @@
       };
     }
     var bibCarr = bibCarrusel(bibPista, document.getElementById('bib-prev'), document.getElementById('bib-next'), function (i) {
-      var a = bibVisibles[i]; if (!a) return; bibSelId = a.id; bibPintarPuntos(); bibPintarCard(a);
+      var a = bibVisibles[i]; if (!a) return; bibSelId = a.id; bibPintarPuntos();
     });
     var bpCarr = bibCarrusel(bpPista, document.getElementById('bp-prev'), document.getElementById('bp-next'), function (i) {
       var p = bpItems[i]; if (p) { bpSel = p.id; bpEtiqueta(p); }
     });
 
-    function bibVaciar() { bibItems = []; bibVisibles = []; bibSelId = null; bibPista.replaceChildren(); bibCard.replaceChildren(); bibPuntos.replaceChildren(); bibZona.hidden = true; }
+    function bibVaciar() { bibItems = []; bibVisibles = []; bibSelId = null; bibPista.replaceChildren(); bibPuntos.replaceChildren(); bibZona.hidden = true; }
     function bibDatos(lista) { bibItems = lista.slice(); bibRender(); }
     function bibFiltrar() {
       var q = bibNorm(bibFiltro.q).trim(), ahora = Date.now(), dias = bibFiltro.fecha === 'todas' ? 0 : parseInt(bibFiltro.fecha, 10);
@@ -1198,49 +1304,52 @@
       else v.sort(function (x, y) { return new Date(y.creado_en) - new Date(x.creado_en); });
       return v;
     }
-    function bibRender() {
-      bibVisibles = bibFiltrar();
-      bibPista.replaceChildren(); bibCard.replaceChildren();
-      if (!bibItems.length) { bibZona.hidden = true; return; }
-      if (!bibVisibles.length) { bibZona.hidden = true; msg(bEstado, 'Ningún documento coincide con la búsqueda o los filtros.', ''); return; }
-      if (bEstado.textContent === 'Ningún documento coincide con la búsqueda o los filtros.') msg(bEstado, '', '');
-      bibZona.hidden = false;
-      var idx = 0;
-      bibVisibles.forEach(function (a, k) {
-        var col = bibColor(a.id), b = document.createElement('button'), s = document.createElement('span'), t = tituloCorto(a.nombre_original);
-        b.type = 'button'; b.className = 'circ' + (t.length <= 9 ? ' corto' : (t.length > 18 ? ' largo' : ''));
-        b.style.cssText = '--c1:' + col.c1 + ';--c2:' + col.c2 + ';--tx:' + col.tx + ';--sombra:' + col.sombra + ';--aro:' + col.aro;
-        b.setAttribute('aria-label', a.nombre_original); s.textContent = t; b.appendChild(s); bibPista.appendChild(b);
-        if (a.id === bibSelId) idx = k;
-      });
-      bibSelId = bibVisibles[idx].id;
-      bibPintarPuntos(); bibPintarCard(bibVisibles[idx]);
-      bibCarr.reiniciar(idx);
-    }
-    function bibPintarPuntos() {
-      var n = bibVisibles.length, i = bibVisibles.findIndex(function (a) { return a.id === bibSelId; });
-      bibPuntos.replaceChildren();
-      if (n <= 7) { for (var k = 0; k < n; k++) { var d = document.createElement('i'); if (k === i) d.className = 'on'; bibPuntos.appendChild(d); } }
-      else bibPuntos.textContent = (i + 1) + ' / ' + n;
-    }
-    function bibPintarCard(a) {
-      var col = bibColor(a.id), g = bibGrupo(a.tipo), pend = a.estado !== 'activo';
-      bibCard.replaceChildren(); bibCard.style.setProperty('--aro', col.aro);
-      var fila = document.createElement('div'), doc = document.createElement('div'), ins = document.createElement('b'), info = document.createElement('div'), n = document.createElement('p'), m = document.createElement('p');
-      fila.className = 'bib-card-fila'; doc.className = 'bib-doc'; doc.setAttribute('aria-hidden', 'true');
-      ins.textContent = g === 'pdf' ? 'PDF' : g === 'word' ? 'DOC' : g === 'ppt' ? 'PPT' : 'IMG'; doc.style.setProperty('--ins', g === 'pdf' ? '#d92d20' : g === 'word' ? '#1d5fd6' : g === 'ppt' ? '#b45309' : '#119a6b'); doc.appendChild(ins);
-      info.className = 'bib-card-info'; n.className = 'bib-nombre'; n.textContent = bibSuave(a.nombre_original);
+    var BIB_TIPO_COLOR = { pdf: ['#d9483b', '#fdeceb'], word: ['#2f6fdd', '#e8f0fd'], ppt: ['#e8772e', '#fdeedd'], img: ['#2a9d76', '#e3f6ee'] };
+    // Cada documento real del usuario es una diapositiva del carrusel, con sus propios botones Abrir y Eliminar.
+    function bibSlide(a) {
+      var g = bibGrupo(a.tipo), pend = a.estado !== 'activo', c = BIB_TIPO_COLOR[g] || BIB_TIPO_COLOR.img;
+      var sl = document.createElement('article'), card = document.createElement('div'), fila = document.createElement('div'), doc = document.createElement('div'), ins = document.createElement('b'), info = document.createElement('div'), n = document.createElement('p'), m = document.createElement('p');
+      sl.className = 'bib-slide'; sl.setAttribute('role', 'group'); sl.setAttribute('aria-label', a.nombre_original);
+      card.className = 'bib-doccard'; card.style.cssText = '--ins:' + c[0] + ';--tinte:' + c[1];
+      fila.className = 'bib-fila'; doc.className = 'bib-doc'; doc.setAttribute('aria-hidden', 'true');
+      ins.textContent = String(a.tipo || '').toUpperCase().slice(0, 4); doc.appendChild(ins);
+      info.className = 'bib-doccard-info'; n.className = 'bib-nombre'; n.textContent = bibSuave(a.nombre_original); n.title = a.nombre_original;
       m.className = 'bib-meta'; m.textContent = String(a.tipo).toUpperCase() + ' · ' + tam(a.tamano) + ' · ' + new Date(a.creado_en).toLocaleDateString('es') + (pend ? ' · eliminación pendiente' : '');
-      info.appendChild(n); info.appendChild(m); fila.appendChild(doc); fila.appendChild(info); bibCard.appendChild(fila);
+      info.appendChild(n); info.appendChild(m); fila.appendChild(doc); fila.appendChild(info); card.appendChild(fila);
       var acc = document.createElement('div'); acc.className = 'bib-acc';
       if (!pend) {
         var ab = document.createElement('button'); ab.type = 'button'; ab.className = 'bib-btn abrir'; ab.innerHTML = '<svg aria-hidden="true"><use href="#i-libro-o"/></svg>Abrir';
-        ab.addEventListener('click', function () { abrirArchivo(a, ab); }); acc.appendChild(ab);
+        ab.addEventListener('click', function () { sonidoTono('click'); abrirArchivo(a, ab); }); acc.appendChild(ab);
       }
       var el = document.createElement('button'); el.type = 'button'; el.className = 'bib-btn elim';
       el.innerHTML = '<svg aria-hidden="true"><use href="#i-papelera"/></svg>' + (pend ? 'Reintentar eliminación' : 'Eliminar');
-      el.addEventListener('click', function () { eliminarGuia(a, el); }); acc.appendChild(el);
-      bibCard.appendChild(acc);
+      el.addEventListener('click', function () { sonidoTono('click'); eliminarGuia(a, el); }); acc.appendChild(el);
+      card.appendChild(acc); sl.appendChild(card);
+      return sl;
+    }
+    function bibRender() {
+      bibVisibles = bibFiltrar();
+      bibPista.replaceChildren();
+      if (!bibItems.length) { bibZona.hidden = true; bibPuntos.replaceChildren(); return; }
+      if (!bibVisibles.length) { bibZona.hidden = true; bibPuntos.replaceChildren(); msg(bEstado, 'Ningún documento coincide con la búsqueda o los filtros.', ''); return; }
+      if (bEstado.textContent === 'Ningún documento coincide con la búsqueda o los filtros.') msg(bEstado, '', '');
+      bibZona.hidden = false;
+      var idx = 0;
+      bibVisibles.forEach(function (a, k) { bibPista.appendChild(bibSlide(a)); if (a.id === bibSelId) idx = k; });
+      bibSelId = bibVisibles[idx].id;
+      bibPintarPuntos();
+      bibCarr.reiniciar(idx);
+    }
+    function bibPintarPuntos() {
+      var n = bibVisibles.length, i = Math.max(0, bibVisibles.findIndex(function (a) { return a.id === bibSelId; }));
+      bibPuntos.replaceChildren();
+      if (!n) return;
+      var t = document.createElement('span'); t.textContent = (i + 1) + ' / ' + n; bibPuntos.appendChild(t);
+      if (n > 1) {
+        var d = document.createElement('div'), ini = Math.max(0, Math.min(i - 1, n - 3)); d.className = 'bib-dots';
+        for (var k = ini; k < Math.min(n, ini + 3); k++) { var p = document.createElement('i'); if (k === i) p.className = 'on'; d.appendChild(p); }
+        bibPuntos.appendChild(d);
+      }
     }
     function bpVaciar() { bpItems = []; bpSel = null; bpPista.replaceChildren(); bpZona.hidden = true; }
     function bpEtiqueta(p) { bpAbrir.textContent = 'Abrir prueba: ' + tituloCorto(p.nombre); }
@@ -1248,28 +1357,50 @@
       bpVaciar(); bpItems = pruebas.slice(); if (!bpItems.length) return;
       bpZona.hidden = false;
       bpItems.forEach(function (p) {
-        var col = bibColor('prueba:' + p.id), b = document.createElement('button'), s = document.createElement('span'), c = document.createElement('small');
+        var b = document.createElement('button'), ic = document.createElement('span'), s = document.createElement('span'), c = document.createElement('small');
         var nq = [p.total_preguntas, p.num_preguntas, p.cantidad_preguntas, p.preguntas_total].filter(function (x) { return typeof x === 'number' && x > 0; })[0];
-        b.type = 'button'; b.className = 'prueba'; b.style.cssText = '--tinte:' + bibMezcla(col.c1, .78) + ';--borde:' + bibMezcla(col.c1, .55) + ';--aro:' + col.aro;
+        b.type = 'button'; b.className = 'prueba';
         b.setAttribute('aria-label', p.nombre);
-        s.textContent = tituloCorto(p.nombre); c.textContent = '(' + (nq || 25) + ' preguntas)'; b.appendChild(s); b.appendChild(c); bpPista.appendChild(b);
+        ic.innerHTML = '<svg aria-hidden="true"><use href="#i-birrete"/></svg>'; ic.style.display = 'grid';
+        s.className = 'tit'; s.textContent = tituloCorto(p.nombre); c.textContent = '(' + (nq || 25) + ' preguntas)';
+        b.appendChild(ic); b.appendChild(s); b.appendChild(c); bpPista.appendChild(b);
       });
       bpSel = bpItems[0].id; bpEtiqueta(bpItems[0]); bpCarr.reiniciar(0);
     }
     bpAbrir.addEventListener('click', function () {
       var p = bpItems.filter(function (x) { return x.id === bpSel; })[0] || bpItems[bpCarr.actual()]; if (p) erAbrirPublicada(p.id, bpAbrir);
     });
+    // Filtros: chips por tipo (Todos, PDF, Word, PowerPoint, Imágenes) + panel de fecha y orden + buscador.
+    var bibChips = document.querySelectorAll('#bib-chips .bib-chip');
+    function bibChipsMarcar() { Array.prototype.forEach.call(bibChips, function (c) { c.setAttribute('aria-pressed', String(c.dataset.tipo === bibFiltro.tipo)); }); }
+    Array.prototype.forEach.call(bibChips, function (c) {
+      c.addEventListener('click', function () { if (bibFiltro.tipo === c.dataset.tipo) return; sonidoTono('click'); bibFiltro.tipo = c.dataset.tipo; bibChipsMarcar(); bibRender(); });
+    });
     var bibT = 0;
     bibQ.addEventListener('input', function () { clearTimeout(bibT); bibT = setTimeout(function () { bibFiltro.q = bibQ.value; bibRender(); }, 150); });
-    [['bib-f-tipo', 'tipo'], ['bib-f-fecha', 'fecha'], ['bib-f-orden', 'orden']].forEach(function (par) {
+    [['bib-f-fecha', 'fecha'], ['bib-f-orden', 'orden']].forEach(function (par) {
       document.getElementById(par[0]).addEventListener('change', function (e) { bibFiltro[par[1]] = e.target.value; bibRender(); });
     });
     document.getElementById('bib-f-limpiar').addEventListener('click', function () {
+      sonidoTono('click');
       bibFiltro = { q: '', tipo: 'todos', fecha: 'todas', orden: 'recientes' }; bibQ.value = '';
-      ['bib-f-tipo', 'bib-f-fecha', 'bib-f-orden'].forEach(function (id, k) { document.getElementById(id).selectedIndex = 0; }); bibRender();
+      ['bib-f-fecha', 'bib-f-orden'].forEach(function (id) { document.getElementById(id).selectedIndex = 0; });
+      bibChipsMarcar(); bibRender();
     });
     var bibBtnFiltro = document.getElementById('bib-filtro'), bibPaneles = document.getElementById('bib-paneles');
-    bibBtnFiltro.addEventListener('click', function () { var ab = bibPaneles.hidden; bibPaneles.hidden = !ab; bibBtnFiltro.setAttribute('aria-expanded', String(ab)); });
+    function bibCerrarPaneles() { bibPaneles.hidden = true; bibBtnFiltro.setAttribute('aria-expanded', 'false'); }
+    bibBtnFiltro.addEventListener('click', function () { sonidoTono('click'); var ab = bibPaneles.hidden; bibPaneles.hidden = !ab; bibBtnFiltro.setAttribute('aria-expanded', String(ab)); });
+    document.addEventListener('click', function (e) { if (!bibPaneles.hidden && !(e.target.closest && e.target.closest('.bib-buscar'))) bibCerrarPaneles(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !bibPaneles.hidden) { bibCerrarPaneles(); bibBtnFiltro.focus(); } });
+    ['bib-prev', 'bib-next', 'bp-prev', 'bp-next'].forEach(function (id) { document.getElementById(id).addEventListener('click', function () { sonidoTono('click'); }); });
+    document.getElementById('bib-nav').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('a')) sonidoTono('click'); });
+    document.getElementById('bib-ayuda').addEventListener('click', function () { sonidoTono('click'); });
+    window.addEventListener('resize', function () {
+      if (location.hash === '#biblioteca') {
+        if (bibVisibles.length) bibCarr.reiniciar(Math.max(0, bibVisibles.findIndex(function (a) { return a.id === bibSelId; })));
+        if (bpItems.length) bpCarr.reiniciar(Math.max(0, bpItems.findIndex(function (p) { return p.id === bpSel; })));
+      }
+    });
     // Barra inferior: solo marca la pestaña activa; los enlaces usan la navegación #hash existente.
     function bibNavMarcar() {
       var h = location.hash.replace('#', ''), t = (h === 'preguntas-app' || h === 'progreso' || h === 'acceso') ? h : 'inicio';
@@ -1441,7 +1572,7 @@
         var p3 = await cliente.from('archivos_usuario').delete().eq('id', a.id).select('id');
         if (p3.error) throw p3.error;
         if (!p3.data || p3.data.length !== 1) throw new Error('borrado_no_confirmado');
-        msg(bEstado, 'Guía eliminada.', 'ok');
+        msg(bEstado, 'Guía eliminada.', 'ok'); sonidoTono('final');
       } catch (err) {
         console.warn('estudia_eliminar', (err && (err.code || err.status || err.name || err.message)) || 'desconocido');
         msg(bEstado, errSesion(err) ? 'Tu sesión expiró. Inicia sesión de nuevo.'
@@ -2196,6 +2327,66 @@
         else if(!activo.hidden)volver();
       });
       if(location.hash==='#leer-escuchar')listar();
+    })();
+
+
+    // ===== Centro de ayuda: independiente de «Preguntas a la app». Sin red, sin IA y sin Supabase. =====
+    (function () {
+      var ITEMS = [
+        { p: '¿Cómo subo un documento?', r: 'En Inicio pulsa «Subir archivo», elige el archivo y pulsa «Subir archivo». Necesitas haber iniciado sesión. Varias imágenes JPG/PNG o PDF se guardan juntas como una sola guía (con el nombre que elijas); los archivos Word y PowerPoint se suben de uno en uno.', k: 'subir cargar agregar anadir archivo documento guia' },
+        { p: '¿Dónde encuentro mis archivos?', r: 'En la Biblioteca: desde Inicio pulsa «Ver biblioteca». Allí solo aparecen los documentos de tu cuenta.', k: 'encontrar donde ver archivos documentos guias biblioteca' },
+        { p: '¿Qué formatos puedo usar?', r: 'Puedes subir PDF, Word (DOC y DOCX), PowerPoint (PPT y PPTX) e imágenes JPG, JPEG y PNG. Cada archivo puede tener un tamaño máximo de 50 MB.', k: 'formatos formato tipos extension extensiones pdf word powerpoint imagen imagenes jpg png doc docx ppt pptx tamano peso pesa pesan cuanto grande maximo mb permitidos acepta aceptan admite admiten soporta compatibles archivo archivos' },
+        { p: '¿Cómo abro un documento?', r: 'En la Biblioteca, desliza o usa las flechas hasta el documento que quieres y pulsa «Abrir». Se abre en una pestaña nueva del navegador.', k: 'abrir ver leer documento archivo' },
+        { p: '¿Cómo elimino un documento?', r: 'Selecciona el documento en la Biblioteca y pulsa «Eliminar». La app te pedirá confirmar. Al eliminarlo se borran el archivo y el material generado a partir de él, y no se puede deshacer. Si la eliminación queda pendiente, pulsa «Reintentar eliminación».', k: 'eliminar borrar quitar documento archivo guia' },
+        { p: '¿Cómo uso los filtros y el buscador?', r: 'Escribe en «Buscar en mi biblioteca» para buscar por nombre. Debajo elige Todos, PDF, Word, PowerPoint o Imágenes. Con el botón «Filtros» también puedes limitar por fecha y cambiar el orden. «Quitar filtros» restablece todo.', k: 'filtros filtrar buscar buscador busqueda tipo fecha orden' },
+        { p: '¿Cómo navego entre mis archivos?', r: 'Desliza el carrusel con el dedo o pulsa las flechas de los lados. El contador (por ejemplo 2 / 10) te indica qué documento estás viendo.', k: 'navegar cambiar pasar siguiente anterior flechas carrusel deslizar documentos archivos' },
+        { p: '¿Cómo accedo a «Mis pruebas»?', r: 'Está debajo de tus documentos en la Biblioteca. Usa las flechas para recorrer tus pruebas, selecciona una y pulsa «Abrir prueba». Si todavía no has publicado ninguna, la sección te lo indica.', k: 'pruebas prueba mis acceder abrir publicadas examen cuestionario' },
+        { p: '¿Cómo regreso a la Biblioteca?', r: 'Pulsa «Volver a Biblioteca», el botón verde que siempre está en la parte inferior del Centro de ayuda.', k: 'volver regresar regreso biblioteca salir' }
+      ];
+      var STOP = ['como', 'que', 'cual', 'cuales', 'donde', 'cuando', 'por', 'para', 'con', 'una', 'uno', 'unos', 'unas', 'los', 'las', 'del', 'mis', 'mi', 'tus', 'puedo', 'puede', 'hacer', 'quiero', 'necesito', 'desde', 'hay', 'esta', 'este', 'esto', 'son', 'ser', 'sus', 'mas', 'muy', 'pero', 'tengo', 'tiene', 'sobre', 'favor'];
+      var lista = document.getElementById('ay-lista'), q = document.getElementById('ay-q'), vacio = document.getElementById('ay-vacio');
+      var form = document.getElementById('ay-form'), texto = document.getElementById('ay-texto'), resp = document.getElementById('ay-respuesta');
+      function tokens(t) { return bibNorm(t).split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 3 && STOP.indexOf(w) === -1; }); }
+      function pintar(items) {
+        lista.replaceChildren();
+        items.forEach(function (it, n) {
+          var li = document.createElement('li'), b = document.createElement('button'), r = document.createElement('p'), id = 'ay-r-' + n;
+          li.className = 'ay-item'; b.type = 'button'; b.className = 'ay-preg'; b.textContent = it.p; b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', id);
+          r.className = 'ay-resp'; r.id = id; r.hidden = true; r.textContent = it.r;
+          b.addEventListener('click', function () {
+            var abrir = r.hidden; sonidoTono('click');
+            Array.prototype.forEach.call(lista.querySelectorAll('.ay-resp'), function (x) { x.hidden = true; });
+            Array.prototype.forEach.call(lista.querySelectorAll('.ay-preg'), function (x) { x.setAttribute('aria-expanded', 'false'); });
+            if (abrir) { r.hidden = false; b.setAttribute('aria-expanded', 'true'); }
+          });
+          li.appendChild(b); li.appendChild(r); lista.appendChild(li);
+        });
+      }
+      function buscar() {
+        var t = tokens(q.value), v = ITEMS;
+        if (t.length) v = ITEMS.filter(function (it) { var h = bibNorm(it.p + ' ' + it.r + ' ' + it.k); return t.every(function (w) { return h.indexOf(w.slice(0, 5)) !== -1; }); });
+        pintar(v);
+        vacio.textContent = v.length ? '' : 'No hay resultados en la ayuda para esa búsqueda.';
+      }
+      q.addEventListener('input', buscar);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); sonidoTono('click');
+        var t = tokens(texto.value); resp.replaceChildren();
+        function dec(titulo, cuerpo) { var st = document.createElement('strong'), pp = document.createElement('span'); if (titulo) { st.textContent = titulo; resp.appendChild(st); } pp.textContent = cuerpo; resp.appendChild(pp); }
+        if (!texto.value.trim()) { dec('', 'Escribe una pregunta sobre el funcionamiento de la Biblioteca.'); return; }
+        var mejor = null, punt = 0;
+        ITEMS.forEach(function (it) {
+          var base = tokens(it.p + ' ' + it.k).map(function (w) { return w.slice(0, 5); });
+          var ok = t.filter(function (w) { return base.indexOf(w.slice(0, 5)) !== -1; }).length;
+          var sc = t.length ? ok / t.length : 0;
+          if (ok >= 1 && sc > punt) { punt = sc; mejor = it; }
+        });
+        if (mejor && punt >= 0.6) dec(mejor.p, mejor.r);
+        else dec('', 'Esa consulta no está contemplada en la ayuda. Prueba con otras palabras o revisa las preguntas frecuentes.');
+      });
+      document.getElementById('ay-volver').addEventListener('click', function () { sonidoTono('click'); });
+      window.addEventListener('hashchange', function () { if (location.hash === '#ayuda') { q.value = ''; texto.value = ''; resp.replaceChildren(); buscar(); } });
+      buscar();
     })();
 
     window.addEventListener('hashchange', mostrar);
