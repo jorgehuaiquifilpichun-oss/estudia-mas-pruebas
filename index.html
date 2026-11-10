@@ -2184,6 +2184,262 @@
     if (erVisible()) erPrepararLista();
 
 
+    // ===== Voz Piper (WebAssembly) para «Leer y escuchar» =====
+    // El motor y el reproductor de audio viven en esta página (no en el iframe), así no se recargan al cerrar el lector.
+    // El iframe solo muestra el texto y envía órdenes por postMessage (ESTUDIA_VOZ); aquí se responden con ESTUDIA_VOZ_EVT.
+    (function(){
+      var BASE='piper/';                      // Carpeta con los 4 archivos de Piper, relativa a index.html.
+      var MODELO='./es_MX-ald-medium.onnx';   // Rutas internas del paquete .data (tomadas de piper.html de la demo).
+      var MAX_TROZO=220;                      // Caracteres máximos por fragmento de voz.
+      var ADELANTE=3;                         // Fragmentos que se preparan por adelantado (límite de memoria).
+      var DEPURAR=true;                       // Escribe tiempos de generación en la consola del navegador.
+      var frame=document.getElementById('lector-marco');
+      var motor=null,cargando=null,audio=null,silencio='',sesion=0,bombeando=0,fallos=0;
+      var paginas=[],cache={},listos={},pos=null,mostrada=-1,urlActual='';
+      var activo=false,pausado=false,esperando=false,velocidad=1;
+
+      function aFrame(d){
+        try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage(Object.assign({type:'ESTUDIA_VOZ_EVT'},d),'*');}catch(e){}
+      }
+      function estado(st,pct){
+        aFrame({evt:'state',state:st,pct:pct});
+        try{if('mediaSession' in navigator)navigator.mediaSession.playbackState=(st==='paused'?'paused':'playing');}catch(e){}
+      }
+      function wavBlob(m,hz){
+        var n=m.length,b=new ArrayBuffer(44+n*2),v=new DataView(b),i,o=44,x;
+        function t(p,s){for(var k=0;k<s.length;k++)v.setUint8(p+k,s.charCodeAt(k));}
+        t(0,'RIFF');v.setUint32(4,36+n*2,true);t(8,'WAVE');t(12,'fmt ');v.setUint32(16,16,true);
+        v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,hz,true);v.setUint32(28,hz*2,true);
+        v.setUint16(32,2,true);v.setUint16(34,16,true);t(36,'data');v.setUint32(40,n*2,true);
+        for(i=0;i<n;i++){x=Math.max(-1,Math.min(1,m[i]));v.setInt16(o,x<0?x*32768:x*32767,true);o+=2;}
+        return new Blob([b],{type:'audio/wav'});
+      }
+      function cederUi(){
+        // MessageChannel en lugar de setTimeout: los temporizadores se frenan mucho con la pantalla apagada.
+        return new Promise(function(ok){var c=new MessageChannel();c.port1.onmessage=function(){c.port1.close();ok();};c.port2.postMessage(0);});
+      }
+      function cargarScript(src){
+        return new Promise(function(ok,mal){
+          var s=document.createElement('script');s.src=src;s.onload=ok;
+          s.onerror=function(){mal(new Error('No se pudo cargar '+src));};
+          document.head.appendChild(s);
+        });
+      }
+
+      // ---------- Motor Piper (sherpa-onnx WebAssembly). Se carga solo al pulsar ▶ por primera vez. ----------
+      function cargarMotor(){
+        if(motor)return Promise.resolve(motor);
+        if(cargando)return cargando;
+        cargando=new Promise(function(ok,mal){
+          var wasmListo=false,apiLista=false,creado=false,vigia=0;
+          function fallo(e){clearTimeout(vigia);mal(e);}
+          function armar(){clearTimeout(vigia);vigia=setTimeout(function(){fallo(new Error('La descarga de Piper no avanza.'));},60000);}
+          function intentar(){
+            if(creado||!wasmListo||!apiLista)return;
+            creado=true;clearTimeout(vigia);
+            try{
+              var t=createOfflineTts(window.Module,{
+                offlineTtsModelConfig:{
+                  offlineTtsVitsModelConfig:{model:MODELO,lexicon:'',tokens:'./tokens.txt',dataDir:'./espeak-ng-data',noiseScale:0.667,noiseScaleW:0.8,lengthScale:1.0},
+                  numThreads:1,debug:0,provider:'cpu'
+                },
+                ruleFsts:'',ruleFars:'',maxNumSentences:1
+              });
+              motor=t;ok(t);
+            }catch(e){mal(e);}
+          }
+          window.Module={
+            locateFile:function(p){return BASE+p;},
+            setStatus:function(t){
+              // El mensaje vacío de setStatus no asegura que el runtime esté inicializado.
+              if(!t)return;
+              armar();
+              var m=String(t).match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
+              if(m&&Number(m[2])>0)aFrame({evt:'state',state:'loading',pct:Math.round(Number(m[1])/Number(m[2])*100)});
+            },
+            onRuntimeInitialized:function(){wasmListo=true;intentar();},
+            onAbort:function(w){fallo(new Error('Piper se detuvo: '+w));}
+          };
+          armar();
+          cargarScript(BASE+'sherpa-onnx-wasm-main-tts.js')
+            .then(function(){return cargarScript(BASE+'sherpa-onnx-tts.js');})
+            .then(function(){apiLista=true;intentar();})
+            .catch(fallo);
+        });
+        return cargando;
+      }
+
+      // ---------- Texto y fragmentos ----------
+      function trocear(t){
+        var s=String(t||'').replace(/\s+/g,' ').trim();
+        if(!s)return [];
+        var fr=s.match(/[^.!?…;:]+[.!?…;:]*\s*/g)||[s],out=[],cur='';
+        fr.forEach(function(f){
+          f=f.trim();if(!f)return;
+          while(f.length>MAX_TROZO){
+            var c=f.lastIndexOf(' ',MAX_TROZO);if(c<MAX_TROZO/2)c=MAX_TROZO;
+            if(cur){out.push(cur);cur='';}
+            out.push(f.slice(0,c).trim());f=f.slice(c).trim();
+          }
+          if(!f)return;
+          if(cur&&cur.length+1+f.length>MAX_TROZO){out.push(cur);cur=f;}else cur=cur?cur+' '+f:f;
+        });
+        if(cur)out.push(cur);
+        return out;
+      }
+      function trozos(p){if(!cache[p])cache[p]=trocear(paginas[p]);return cache[p];}
+      function primero(p){while(p<paginas.length){if(trozos(p).length)return {p:p,i:0};p++;}return null;}
+      function sig(q){
+        var p=q.p,i=q.i+1;
+        while(p<paginas.length){if(i<trozos(p).length)return {p:p,i:i};p++;i=0;}
+        return null;
+      }
+      function clave(q){return q.p+':'+q.i;}
+      function liberar(q){var k=clave(q),e=listos[k];if(e&&e.url)URL.revokeObjectURL(e.url);delete listos[k];}
+
+      // ---------- Reproductor HTML5 ----------
+      function preparaAudio(){
+        if(audio)return;
+        audio=new Audio();audio.preload='auto';
+        try{audio.preservesPitch=true;audio.webkitPreservesPitch=true;}catch(e){}
+        silencio=URL.createObjectURL(wavBlob(new Float32Array(2205),22050));
+        audio.addEventListener('ended',function(){if(activo&&!audio.loop)avanzar();});
+        audio.addEventListener('playing',function(){if(!audio.loop)fallos=0;});
+        audio.addEventListener('error',function(){
+          if(!activo||audio.loop||!audio.getAttribute('src'))return;
+          if(++fallos>2){fallar(new Error('Error de audio'),'No se pudo reproducir el audio de Piper.');return;}
+          avanzar();
+        });
+        audio.addEventListener('pause',function(){
+          // Pausa externa (auriculares, llamada, sistema): se refleja en los controles del lector.
+          if(!activo||pausado||audio.ended||audio.loop||esperando)return;
+          pausado=true;estado('paused');
+        });
+      }
+      function ponerMediaSession(){
+        if(!('mediaSession' in navigator))return;
+        try{
+          var ms=navigator.mediaSession;
+          ms.metadata=new MediaMetadata({title:'Leer y escuchar',artist:'Estudia+'});
+          ms.setActionHandler('play',function(){reanudar();});
+          ms.setActionHandler('pause',function(){pausar();});
+          ms.setActionHandler('previoustrack',function(){aFrame({evt:'media',action:'prev'});});
+          ms.setActionHandler('nexttrack',function(){aFrame({evt:'media',action:'next'});});
+        }catch(e){}
+      }
+      function titulo(p){
+        try{if('mediaSession' in navigator)navigator.mediaSession.metadata=new MediaMetadata({title:'Página '+(p+1)+' de '+paginas.length,artist:'Estudia+ · Leer y escuchar'});}catch(e){}
+      }
+      function esperar(){
+        esperando=true;estado('loading');
+        // Silencio en bucle mientras se prepara el siguiente fragmento, para no soltar el audio del sistema.
+        if(silencio&&!audio.loop){audio.loop=true;audio.src=silencio;urlActual='';audio.play().catch(function(){});}
+        bomba(sesion);
+      }
+      function sonar(){
+        if(!activo||!pos||pausado)return;
+        var e=listos[clave(pos)];
+        if(!e){esperar();return;}
+        if(!e.url){avanzar();return;}
+        esperando=false;audio.loop=false;
+        if(pos.p!==mostrada){mostrada=pos.p;aFrame({evt:'page',page:pos.p});titulo(pos.p);}
+        urlActual=e.url;audio.src=e.url;audio.playbackRate=velocidad;
+        audio.play().catch(errorPlay);
+        estado('playing');
+        bomba(sesion);
+      }
+      function errorPlay(e){
+        if(!e||e.name==='AbortError')return;
+        if(e.name==='NotAllowedError')fallar(e,'El navegador bloqueó el audio. Pulsa ▶ otra vez.');
+        else fallar(e,'No se pudo reproducir el audio de Piper.');
+      }
+      function avanzar(){
+        if(!pos)return;
+        var vieja=pos,n=sig(pos);
+        liberar(vieja);
+        if(!n){fin();return;}
+        pos=n;sonar();
+      }
+      function fin(){detener();aFrame({evt:'end'});}
+
+      // ---------- Generación por adelantado (cola ordenada, sin duplicados, cancelable) ----------
+      async function bomba(s){
+        if(bombeando===s||!motor)return;
+        bombeando=s;
+        try{
+          while(s===sesion&&pos){
+            var q=pos,n=0,obj=null;
+            while(q&&n<=ADELANTE){if(!listos[clave(q)]){obj=q;break;}q=sig(q);n++;}
+            if(!obj)break;
+            await cederUi();
+            if(s!==sesion)break;
+            var t0=Date.now(),r=motor.generate({text:trozos(obj.p)[obj.i],sid:0,speed:1.0});
+            if(s!==sesion)break;
+            var ok=r&&r.samples&&r.samples.length>0;
+            listos[clave(obj)]={url:ok?URL.createObjectURL(wavBlob(r.samples,r.sampleRate)):''};
+            if(DEPURAR&&ok)console.log('[Piper] '+(r.samples.length/r.sampleRate).toFixed(1)+' s de audio en '+(Date.now()-t0)+' ms');
+            if(esperando&&!pausado&&pos&&listos[clave(pos)]){esperando=false;sonar();}
+          }
+        }catch(e){if(s===sesion)fallar(e,'Piper no pudo generar la voz.');}
+        finally{if(bombeando===s)bombeando=0;}
+      }
+
+      // ---------- Órdenes ----------
+      function iniciar(p,vel){
+        detener();
+        var s=sesion,q=primero(p);
+        velocidad=Math.max(0.5,Math.min(2,vel||velocidad));
+        if(!q){aFrame({evt:'end'});return;}
+        activo=true;pos=q;mostrada=p;fallos=0;
+        preparaAudio();ponerMediaSession();estado('loading');
+        // Con el toque del usuario aún vigente, se «abre» el audio con un silencio breve.
+        audio.loop=true;audio.src=silencio;urlActual='';audio.play().catch(function(){});
+        cargarMotor().then(function(){
+          if(s!==sesion)return;
+          esperando=true;bomba(s);
+        }).catch(function(e){
+          if(s===sesion)fallar(e,'No se pudo cargar la voz Piper. Revisa tu conexión y que la carpeta «piper» esté publicada, y recarga la página.');
+        });
+      }
+      function pausar(){
+        if(!activo||pausado)return;
+        pausado=true;try{audio.pause();}catch(e){}
+        estado('paused');
+      }
+      function reanudar(){
+        if(!activo||!pausado)return;
+        pausado=false;
+        var e=pos&&listos[clave(pos)];
+        if(!esperando&&e&&e.url&&e.url===urlActual&&audio.paused){audio.play().catch(errorPlay);estado('playing');}
+        else sonar();
+      }
+      function detener(){
+        sesion++;activo=false;pausado=false;esperando=false;pos=null;mostrada=-1;urlActual='';
+        if(audio){try{audio.pause();audio.loop=false;audio.removeAttribute('src');audio.load();}catch(e){}}
+        Object.keys(listos).forEach(function(k){var e=listos[k];if(e&&e.url)URL.revokeObjectURL(e.url);});
+        listos={};
+        try{if('mediaSession' in navigator)navigator.mediaSession.playbackState='none';}catch(e){}
+      }
+      function fallar(e,msg){
+        console.error('[Piper]',e);
+        detener();
+        aFrame({evt:'error',msg:msg});
+      }
+
+      window.addEventListener('message',function(ev){
+        var d=ev.data;
+        if(!frame||ev.source!==frame.contentWindow||!d||d.type!=='ESTUDIA_VOZ')return;
+        if(d.op==='pages'){if(Array.isArray(d.pages)){detener();paginas=d.pages.map(String);cache={};}}
+        else if(d.op==='play')iniciar(Math.max(0,Math.floor(Number(d.page))||0),Number(d.speed));
+        else if(d.op==='pause')pausar();
+        else if(d.op==='resume')reanudar();
+        else if(d.op==='stop')detener();
+        else if(d.op==='speed'){velocidad=Math.max(0.5,Math.min(2,Number(d.value)||1));if(audio)audio.playbackRate=velocidad;}
+      });
+      window.addEventListener('pagehide',detener);
+      window.EstudiaVoz={detener:detener};
+    })();
+
     // ===== Lector independiente. No cambia Estudio rápido ni su estado =====
     (function(){
       var abrir=document.getElementById('lector-abrir'), busqueda=document.getElementById('lector-busqueda');
@@ -2192,10 +2448,11 @@
       var estado=document.getElementById('lector-estado'), selector=document.getElementById('lector-selector');
       var activo=document.getElementById('lector-activo'), frame=document.getElementById('lector-marco');
       var exit=document.getElementById('lector-salir'), listado=[], tipoActual='', seleccionado='', ocupada=false, seq=0;
-      var plantilla="<!doctype html>\n<html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<meta name=\"theme-color\" content=\"#f4f8ff\"><title>Leer y escuchar | Estudia+<\/title>\n<style>\n:root{--reader-font:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;--reader-size:14.5px;font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#15243d;background:#eaf2fb}\n*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}\nbutton,select{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,select:focus-visible{outline:3px solid #2678d2;outline-offset:2px}\n.app{position:relative;width:100%;max-width:480px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden;background:#fff;box-shadow:0 0 28px #102f5420}\n.reader{height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 10px) 48px calc(env(safe-area-inset-bottom,0px) + 46px) 14px;touch-action:pan-y;font-family:var(--reader-font);text-align:var(--reader-align,left)}\n.topic{padding:0 0 4px;margin:0 0 4px;border-bottom:1px solid #e5ebf1}\n.topic:last-child{border-bottom:0}\n.topic h2{font-size:var(--reader-size);line-height:1.2;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}\n.topic p{font-size:var(--reader-size);line-height:1.34;font-weight:400;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}\n.round{height:42px;width:42px;border:0;border-radius:50%;background:#2677cb;color:#fff;box-shadow:0 3px 12px #164a763d;display:grid;place-items:center;flex:none;pointer-events:auto;font-size:20px;line-height:1}\n.audioToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:49px;width:36px;height:36px;font-size:17px}\n.audioPanel{position:absolute;z-index:11;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:91px;width:min(380px,calc(100% - 98px));padding:3px 5px;background:#f1f7ff;border:1px solid #cddfeb;border-radius:15px;box-shadow:0 7px 18px #1638552e;min-height:36px;display:flex;align-items:center;gap:5px}\n.audioPanel[hidden]{display:none}\n.audioActions{display:flex;flex:1;min-width:0;gap:4px}\n.audioActions button{flex:1;min-width:0;height:30px;border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;font-size:17px;font-weight:700;padding:0 2px;display:grid;place-items:center}\n.audioActions #play{background:#218b68;border-color:#218b68;color:#fff}\n.audioSpeed{display:flex;align-items:center;flex:0 0 auto;margin:0}\n.audioSpeed label{display:none}\n.audioSpeed select{border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;padding:0 2px;min-height:30px;height:30px;font-size:11px;max-width:57px}\n.pageCount{position:absolute;z-index:10;top:calc(env(safe-area-inset-top,0px) + 6px);right:7px;font:600 11px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#536779;background:#edf3f9e8;border-radius:10px;padding:3px 5px;min-width:38px;text-align:center;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}\n.app.dark .pageCount{color:#e7eaf0;background:#252b34e8}\n/* Barra lateral discreta para ajustar la lectura sin tapar el texto */\n.fontScale{position:absolute;z-index:8;right:7px;top:50%;transform:translateY(-50%);width:34px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:19px;background:#ddf7ffed;border:1px solid #a4dce9;box-shadow:0 4px 12px #1c668022}\n.fontScale button{height:31px;width:29px;border:0;background:#f5fdff;border-radius:14px;color:#176787;font-size:17px;font-weight:800;line-height:1}\n.fontScale output{font-size:10px;color:#275b6e;font-weight:750;white-space:nowrap}\n.fontToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:7px;width:36px;height:36px;font-size:15px;font-weight:750}\n/* Contraste de lectura independiente de la tipografía y la paginación */\n.themeToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 49px);right:7px;width:36px;height:36px;padding:0;overflow:hidden;background:linear-gradient(90deg,#111 0 50%,#fff 50% 100%);border:2px solid #2677cb;box-shadow:0 3px 12px #164a763d}\n.backToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 135px);right:7px;width:36px;height:36px;padding:0}\n.backToggle svg{width:25px;height:25px;display:block;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}\n/* Alineación independiente, por fuera del menú Aa. */\n.alignToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);right:7px;width:36px;height:36px;padding:0}\n.alignToggle svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round}\n.alignPanel{position:absolute;z-index:14;right:49px;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);padding:7px;background:#f2faff;border:1px solid #bdd8ec;border-radius:14px;box-shadow:0 7px 18px #1638552e;color:#214a70}\n.alignPanel[hidden]{display:none}\n.fontPanel{position:absolute;z-index:13;bottom:calc(env(safe-area-inset-bottom,0px) + 95px);right:7px;width:min(306px,calc(100% - 20px));padding:12px;background:#f2faff;border:1px solid #bdd8ec;border-radius:14px;box-shadow:0 7px 18px #1638552e;color:#214a70}\n.fontPanel[hidden]{display:none}\n.fontPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}\n.fontPanelHeader label{font-size:12px;color:#214a70;font-weight:700;margin:0}\n.fontPanel select{width:100%;min-height:37px;padding:0 10px;border:1px solid #a8c8e3;background:white;border-radius:9px;color:#173a55}\n.alignOptions{display:flex;gap:6px;flex:none}\n.alignOptions button{width:34px;height:32px;padding:4px;display:grid;place-items:center;border:1px solid #bed7e9;background:#fff;color:#214a70;border-radius:8px}\n.alignOptions button[aria-pressed=\"true\"]{background:#d5ebff;border-color:#2677cb;box-shadow:inset 0 0 0 1px #2677cb}\n.alignOptions svg{width:23px;height:21px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round}\n.themeToggle::after{content:'';position:absolute;inset:8px;border:1px solid #7c8796;border-radius:50%;pointer-events:none}\n/* Pantalla de ejemplo para comprobar el botón de regreso sin abandonar Chrome. */\n.app.dark{background:#000;color:#fff}\n.app.dark .reader{color:#fff;background:#000}\n.app.dark .topic{border-bottom-color:#4a4a4a}\n.app.dark .topic h2,.app.dark .topic p{color:#fff}\n@media(max-height:620px){.reader{padding-left:12px;padding-right:45px}.topic{padding-bottom:3px;margin-bottom:3px}}\n\n<\/style><\/head><body>\n<main class=\"app\" id=\"app\">\n<section id=\"reader\" class=\"reader\" role=\"region\" aria-label=\"Lectura del documento\"><\/section>\n<output id=\"pageCount\" class=\"pageCount\" aria-label=\"Página actual de lectura\">1/1<\/output>\n<section id=\"audioPanel\" class=\"audioPanel\" aria-label=\"Controles de voz\" hidden>\n <div class=\"audioActions\"><button id=\"prev\" type=\"button\" aria-label=\"Página anterior\" title=\"Página anterior\">⏮<\/button><button id=\"play\" type=\"button\" aria-label=\"Escuchar esta página\" title=\"Reproducir\">▶<\/button><button id=\"pause\" type=\"button\" aria-label=\"Pausar o continuar\" title=\"Pausar o continuar\">⏸<\/button><button id=\"next\" type=\"button\" aria-label=\"Página siguiente\" title=\"Página siguiente\">⏭<\/button><\/div>\n <div class=\"audioSpeed\"><label for=\"speed\">Velocidad de voz<\/label><select id=\"speed\"><option value=\"0.75\">0,75×<\/option><option value=\"1\" selected>1×<\/option><option value=\"1.25\">1,25×<\/option><option value=\"1.5\">1,5×<\/option><option value=\"1.75\">1,75×<\/option><option value=\"2\">2×<\/option><\/select><\/div>\n<\/section>\n<div class=\"fontScale\" aria-label=\"Tamaño de letra\">\n <button type=\"button\" id=\"fontUp\" aria-label=\"Aumentar letra\">+<\/button>\n <output id=\"fontValue\" aria-live=\"polite\">14,5<\/output>\n <button type=\"button\" id=\"fontDown\" aria-label=\"Reducir letra\">−<\/button>\n<\/div>\n<section id=\"fontPanel\" class=\"fontPanel\" aria-label=\"Elegir tipo de letra\" hidden>\n <div class=\"fontPanelHeader\"><label for=\"fontFamily\">Tipo de letra<\/label><\/div>\n <select id=\"fontFamily\">\n  <option value=\"system\">Predeterminada (clara)<\/option>\n  <option value=\"verdana\">Verdana<\/option>\n  <option value=\"arial\">Arial<\/option>\n  <option value=\"georgia\">Georgia<\/option>\n <\/select>\n<\/section>\n<section id=\"alignPanel\" class=\"alignPanel\" aria-label=\"Alinear texto\" hidden>\n <div class=\"alignOptions\" role=\"group\" aria-label=\"Alineación del texto\">\n  <button type=\"button\" data-align=\"left\" aria-pressed=\"true\" aria-label=\"Alinear a la izquierda\" title=\"Izquierda\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M3 15h16\"/><\/svg><\/button>\n  <button type=\"button\" data-align=\"center\" aria-pressed=\"false\" aria-label=\"Alinear al centro\" title=\"Centro\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M6 10h12M4 15h16\"/><\/svg><\/button>\n  <button type=\"button\" data-align=\"right\" aria-pressed=\"false\" aria-label=\"Alinear a la derecha\" title=\"Derecha\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M9 10h12M5 15h16\"/><\/svg><\/button>\n <\/div><\/section>\n<button class=\"round alignToggle\" id=\"alignToggle\" type=\"button\" aria-label=\"Alinear texto\" aria-expanded=\"false\" aria-controls=\"alignPanel\" title=\"Alinear texto\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M3 15h16M3 20h13\"/><\/svg><\/button>\n<button class=\"round audioToggle\" id=\"audioToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"audioPanel\" aria-label=\"Abrir controles de voz\">♫<\/button>\n<button class=\"round backToggle\" id=\"backToggle\" type=\"button\" aria-label=\"Volver a seleccionar documento\" title=\"Volver\"><svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M13 7 5 15l8 7\"/><path d=\"M6 15h13c5 0 8 3 8 7s-3 6-8 6\"/><\/svg><\/button>\n<button class=\"round themeToggle\" id=\"themeToggle\" type=\"button\" aria-label=\"Activar fondo negro y letras blancas\" aria-pressed=\"false\" title=\"Cambiar contraste\"><\/button>\n<button class=\"round fontToggle\" id=\"fontToggle\" type=\"button\" aria-label=\"Elegir letra\" aria-expanded=\"false\" aria-controls=\"fontPanel\">Aa<\/button>\n<\/main>\n<script>\nlet slides=[];\nlet pages=[];\nconst $=id=>document.getElementById(id);\nlet pageIndex=0,audioOpen=false,fontOpen=false,alignOpen=false,fontSize=14.5,activeSpeech=false,paused=false,speechToken=0;\nconst synth=('speechSynthesis' in window)?window.speechSynthesis:null;\nfunction esc(s){return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]))}\nfunction topicHtml(s){return '<article class=\"topic\">'+(s.title?'<h2>'+esc(s.title)+'<\/h2>':'')+'<p>'+esc(s.body)+'<\/p><\/article>'}\nfunction stopSpeech(){speechToken++;if(synth)synth.cancel();activeSpeech=false;paused=false;$('pause').textContent='⏸'}\n// El paginador conserva las palabras y puede dividir un texto largo entre páginas.\n// Así evita dejar páginas casi vacías solo porque el siguiente bloque es extenso.\nconst ruler=document.createElement('section');\nruler.className='reader';\nruler.setAttribute('aria-hidden','true');\nruler.style.cssText='position:absolute;left:-9999px;top:0;height:auto;max-height:none;overflow:visible;visibility:hidden;pointer-events:none;padding:0;';\n$('app').appendChild(ruler);\nfunction calculatePages(){\n const reader=$('reader');\n const styles=getComputedStyle(reader);\n const textWidth=Math.max(120,reader.clientWidth-parseFloat(styles.paddingLeft)-parseFloat(styles.paddingRight));\n const fitHeight=Math.max(80,reader.clientHeight-parseFloat(styles.paddingTop)-parseFloat(styles.paddingBottom));\n ruler.style.width=textWidth+'px';\n ruler.replaceChildren();\n const tokenGroups=slides.map(s=>s.body.match(/\\s*\\S+|\\s+/g)||[]);\n const result=[];\n let source=0,offset=0;\n function fits(){return ruler.scrollHeight<=fitHeight+1;}\n function append(part){ruler.insertAdjacentHTML('beforeend',topicHtml(part));}\n while(source<slides.length){\n  const pageStart=source,pageOffset=offset,items=[];\n  ruler.replaceChildren();\n  while(source<slides.length){\n   const words=tokenGroups[source], title=offset===0?slides[source].title:'';\n   const remaining=words.length-offset;\n   const full={title,body:words.slice(offset).join('')};\n   append(full);\n   if(fits()){\n    items.push(full);source++;offset=0;continue;\n   }\n   ruler.lastElementChild.remove();\n   // Ajustar por palabras con búsqueda binaria. No descartar ni repetir fragmentos.\n   let lo=0,hi=remaining;\n   while(lo<hi){\n    const mid=Math.ceil((lo+hi)/2);\n    append({title,body:words.slice(offset,offset+mid).join('')});\n    const ok=fits();ruler.lastElementChild.remove();\n    if(ok)lo=mid;else hi=mid-1;\n   }\n   if(lo===0 && items.length)break;\n   // Si una palabra no cabe siquiera sola, permitirla en página propia con desplazamiento.\n   const take=Math.max(1,lo);\n   const part={title,body:words.slice(offset,offset+take).join('')};\n   append(part);items.push(part);\n   offset+=take;\n   if(offset>=words.length){source++;offset=0;}\n   break;\n  }\n  result.push({start:pageStart,startToken:pageOffset,items});\n }\n return result;\n}\nfunction render(n,stopAudio=true){\n if(n<0||n>=pages.length)return;\n if(stopAudio&&n!==pageIndex)stopSpeech();\n pageIndex=n;\n const page=pages[n];\n $('reader').innerHTML=page.items.map(topicHtml).join('');\n $('reader').scrollTop=0;\n $('prev').disabled=n===0;$('next').disabled=n===pages.length-1;\n $('pageCount').textContent=(n+1)+'/'+pages.length;\n}\nfunction repaginate(){\n const oldPage=pages[pageIndex];\n const source=oldPage?.start??0,token=oldPage?.startToken??0;\n stopSpeech();\n pages=calculatePages();\n let target=0;\n pages.forEach((p,i)=>{\n  if(p.start<source || (p.start===source && p.startToken<=token))target=i;\n });\n render(target,false);\n}\nfunction toggleAudio(open){if(open){toggleFont(false);toggleAlign(false);}audioOpen=open;$('audioPanel').hidden=!open;$('audioToggle').setAttribute('aria-expanded',String(open));$('audioToggle').setAttribute('aria-label',open?'Cerrar controles de voz':'Abrir controles de voz');$('audioToggle').textContent=open?'×':'♫'}\nfunction toggleFont(open){if(open)toggleAlign(false);fontOpen=open;$('fontPanel').hidden=!open;$('fontToggle').setAttribute('aria-expanded',String(open));$('fontToggle').setAttribute('aria-label',open?'Cerrar tipos de letra':'Elegir tipo de letra')}\nfunction toggleAlign(open){if(open){toggleFont(false);toggleAudio(false);}alignOpen=open;$('alignPanel').hidden=!open;$('alignToggle').setAttribute('aria-expanded',String(open))}\n$('alignToggle').addEventListener('click',()=>toggleAlign(!alignOpen));\ndocument.querySelectorAll('[data-align]').forEach(button=>button.addEventListener('click',()=>{\n const value=button.dataset.align;\n if(!['left','center','right'].includes(value))return;\n document.documentElement.style.setProperty('--reader-align',value);\n document.querySelectorAll('[data-align]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));\n\n repaginate();\n toggleAlign(false);\n}));\nfunction updateSize(next){\n fontSize=Math.max(12,Math.min(22,Math.round(next*2)/2));\n document.documentElement.style.setProperty('--reader-size',fontSize+'px');\n $('fontValue').textContent=String(fontSize).replace('.',',');\n repaginate();\n}\n$('fontUp').addEventListener('click',()=>updateSize(fontSize+0.5));\n$('fontDown').addEventListener('click',()=>updateSize(fontSize-0.5));\n$('fontToggle').addEventListener('click',()=>{const next=!fontOpen;if(next)toggleAudio(false);toggleFont(next)});\n$('fontFamily').addEventListener('change',e=>{\n const families={system:'system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif',verdana:'Verdana,Geneva,sans-serif',arial:'Arial,Helvetica,sans-serif',georgia:'Georgia,\"Times New Roman\",serif'};\n document.documentElement.style.setProperty('--reader-font',families[e.target.value]||families.system);\n repaginate();\n});\n$('themeToggle').addEventListener('click',()=>{\n const dark=$('app').classList.toggle('dark');\n $('themeToggle').setAttribute('aria-pressed',String(dark));\n $('themeToggle').setAttribute('aria-label',dark?'Activar fondo blanco y letras negras':'Activar fondo negro y letras blancas');\n});\n$('audioToggle').addEventListener('click',()=>toggleAudio(!audioOpen));\nfunction changePage(delta){\n const target=pageIndex+delta;\n if(target<0||target>=pages.length)return;\n const resumeAudio=activeSpeech;\n render(target);\n if(resumeAudio)startReading();\n}\n$('prev').addEventListener('click',()=>changePage(-1));\n$('next').addEventListener('click',()=>changePage(1));\n$('backToggle').addEventListener('click',()=>{stopSpeech();toggleAudio(false);toggleFont(false);toggleAlign(false);window.parent.postMessage({type:'ESTUDIA_LECTURA_VOLVER'},'*');});\nfunction startReading(){\n if(!synth){alert('Este navegador no permite lectura en voz alta.');return;}\n stopSpeech();const token=speechToken;\n let texts=pages[pageIndex].items.map(s=>s.title+'. '+s.body);\n let i=0;activeSpeech=true;\n function speakNext(){\n  if(token!==speechToken)return;\n  if(i>=texts.length){\n   if(pageIndex+1<pages.length){\n    render(pageIndex+1,false);\n    texts=pages[pageIndex].items.map(s=>s.title+'. '+s.body);\n    i=0;\n    speakNext();\n    return;\n   }\n   activeSpeech=false;paused=false;$('pause').textContent='⏸';return;\n  }\n  const u=new SpeechSynthesisUtterance(texts[i++]);u.lang='es-CL';u.rate=Number($('speed').value);\n  u.onend=speakNext;\n  u.onerror=()=>{if(token===speechToken){activeSpeech=false;paused=false;$('pause').textContent='⏸'}};\n  synth.speak(u);\n }\n speakNext();\n}\n$('play').addEventListener('click',startReading);\n$('pause').addEventListener('click',()=>{\n if(!synth||!activeSpeech)return;\n if(paused){synth.resume();paused=false;$('pause').textContent='⏸'}\n else{synth.pause();paused=true;$('pause').textContent='▶'}\n});\nwindow.addEventListener('pagehide',stopSpeech);\n// No pausar automáticamente la narración al ocultarse la página o bloquearse la pantalla.\ndocument.addEventListener('keydown',e=>{if(e.key==='Escape'){toggleAudio(false);toggleFont(false)}else if(e.key==='ArrowLeft')changePage(-1);else if(e.key==='ArrowRight')changePage(1)});\nlet startX=null,startY=null;\n$('reader').addEventListener('touchstart',e=>{if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY}},{passive:true});\n$('reader').addEventListener('touchend',e=>{if(startX===null)return;const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;startX=startY=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.5)changePage(dx<0?1:-1)},{passive:true});\nwindow.addEventListener('message', e => {\n  if (e.source !== window.parent || !e.data || e.data.type !== 'ESTUDIA_LECTURA') return;\n  if (!Array.isArray(e.data.slides)) return;\n  stopSpeech();\n  slides=e.data.slides.filter(x=>x && typeof x.title==='string' && typeof x.body==='string');\n  pageIndex=0;\n  if(!slides.length){$('reader').textContent='Esta guía no contiene texto legible.';$('pageCount').textContent='0/0';return;}\n  pages=calculatePages();render(0);\n});\nlet resizeFrame=0;\nwindow.addEventListener('resize',()=>{\n if(!slides.length)return;\n cancelAnimationFrame(resizeFrame);\n resizeFrame=requestAnimationFrame(repaginate);\n});\n\n<\/script><\/body><\/html>";
+      var plantilla="<!doctype html>\n<html lang=\"es\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<meta name=\"theme-color\" content=\"#f4f8ff\"><title>Leer y escuchar | Estudia+<\/title>\n<style>\n:root{--reader-font:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;--reader-size:14.5px;font-family:system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#15243d;background:#eaf2fb}\n*{box-sizing:border-box}html,body{height:100%;margin:0;overflow:hidden}\nbutton,select{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,select:focus-visible{outline:3px solid #2678d2;outline-offset:2px}\n.app{position:relative;width:100%;max-width:480px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden;background:#fff;box-shadow:0 0 28px #102f5420}\n.reader{height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top,0px) + 10px) 48px calc(env(safe-area-inset-bottom,0px) + 46px) 14px;touch-action:pan-y;font-family:var(--reader-font);text-align:var(--reader-align,left)}\n.topic{padding:0 0 4px;margin:0 0 4px;border-bottom:1px solid #e5ebf1}\n.topic:last-child{border-bottom:0}\n.topic h2{font-size:var(--reader-size);line-height:1.2;font-weight:700;letter-spacing:-.01em;margin:0 0 2px}\n.topic p{font-size:var(--reader-size);line-height:1.34;font-weight:400;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}\n.round{height:42px;width:42px;border:0;border-radius:50%;background:#2677cb;color:#fff;box-shadow:0 3px 12px #164a763d;display:grid;place-items:center;flex:none;pointer-events:auto;font-size:20px;line-height:1}\n.audioToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:49px;width:36px;height:36px;font-size:17px}\n.audioPanel{position:absolute;z-index:11;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:91px;width:min(380px,calc(100% - 98px));padding:3px 5px;background:#f1f7ff;border:1px solid #cddfeb;border-radius:15px;box-shadow:0 7px 18px #1638552e;min-height:36px;display:flex;align-items:center;gap:5px}\n.audioPanel[hidden]{display:none}\n.audioActions{display:flex;flex:1;min-width:0;gap:4px}\n.audioActions button{flex:1;min-width:0;height:30px;border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;font-size:17px;font-weight:700;padding:0 2px;display:grid;place-items:center}\n.audioActions #play{background:#218b68;border-color:#218b68;color:#fff}\n.audioSpeed{display:flex;align-items:center;flex:0 0 auto;margin:0}\n.audioSpeed label{display:none}\n.audioSpeed select{border:1px solid #c0d2e3;border-radius:9px;background:#fff;color:#23435e;padding:0 2px;min-height:30px;height:30px;font-size:11px;max-width:57px}\n.pageCount{position:absolute;z-index:10;top:calc(env(safe-area-inset-top,0px) + 6px);right:7px;font:600 11px/1.3 system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif;color:#536779;background:#edf3f9e8;border-radius:10px;padding:3px 5px;min-width:38px;text-align:center;white-space:nowrap;pointer-events:none;font-variant-numeric:tabular-nums}\n.app.dark .pageCount{color:#e7eaf0;background:#252b34e8}\n/* Barra lateral discreta para ajustar la lectura sin tapar el texto */\n.fontScale{position:absolute;z-index:8;right:7px;top:50%;transform:translateY(-50%);width:34px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 2px;border-radius:19px;background:#ddf7ffed;border:1px solid #a4dce9;box-shadow:0 4px 12px #1c668022}\n.fontScale button{height:31px;width:29px;border:0;background:#f5fdff;border-radius:14px;color:#176787;font-size:17px;font-weight:800;line-height:1}\n.fontScale output{font-size:10px;color:#275b6e;font-weight:750;white-space:nowrap}\n.fontToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);right:7px;width:36px;height:36px;font-size:15px;font-weight:750}\n/* Contraste de lectura independiente de la tipografía y la paginación */\n.themeToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 49px);right:7px;width:36px;height:36px;padding:0;overflow:hidden;background:linear-gradient(90deg,#111 0 50%,#fff 50% 100%);border:2px solid #2677cb;box-shadow:0 3px 12px #164a763d}\n.backToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 135px);right:7px;width:36px;height:36px;padding:0}\n.backToggle svg{width:25px;height:25px;display:block;fill:none;stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}\n/* Alineación independiente, por fuera del menú Aa. */\n.alignToggle{position:absolute;z-index:12;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);right:7px;width:36px;height:36px;padding:0}\n.alignToggle svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round}\n.alignPanel{position:absolute;z-index:14;right:49px;bottom:calc(env(safe-area-inset-bottom,0px) + 92px);padding:7px;background:#f2faff;border:1px solid #bdd8ec;border-radius:14px;box-shadow:0 7px 18px #1638552e;color:#214a70}\n.alignPanel[hidden]{display:none}\n.fontPanel{position:absolute;z-index:13;bottom:calc(env(safe-area-inset-bottom,0px) + 95px);right:7px;width:min(306px,calc(100% - 20px));padding:12px;background:#f2faff;border:1px solid #bdd8ec;border-radius:14px;box-shadow:0 7px 18px #1638552e;color:#214a70}\n.fontPanel[hidden]{display:none}\n.fontPanelHeader{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}\n.fontPanelHeader label{font-size:12px;color:#214a70;font-weight:700;margin:0}\n.fontPanel select{width:100%;min-height:37px;padding:0 10px;border:1px solid #a8c8e3;background:white;border-radius:9px;color:#173a55}\n.alignOptions{display:flex;gap:6px;flex:none}\n.alignOptions button{width:34px;height:32px;padding:4px;display:grid;place-items:center;border:1px solid #bed7e9;background:#fff;color:#214a70;border-radius:8px}\n.alignOptions button[aria-pressed=\"true\"]{background:#d5ebff;border-color:#2677cb;box-shadow:inset 0 0 0 1px #2677cb}\n.alignOptions svg{width:23px;height:21px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round}\n.themeToggle::after{content:'';position:absolute;inset:8px;border:1px solid #7c8796;border-radius:50%;pointer-events:none}\n/* Pantalla de ejemplo para comprobar el botón de regreso sin abandonar Chrome. */\n.app.dark{background:#000;color:#fff}\n.app.dark .reader{color:#fff;background:#000}\n.app.dark .topic{border-bottom-color:#4a4a4a}\n.app.dark .topic h2,.app.dark .topic p{color:#fff}\n@media(max-height:620px){.reader{padding-left:12px;padding-right:45px}.topic{padding-bottom:3px;margin-bottom:3px}}\n\n<\/style><\/head><body>\n<main class=\"app\" id=\"app\">\n<section id=\"reader\" class=\"reader\" role=\"region\" aria-label=\"Lectura del documento\"><\/section>\n<output id=\"pageCount\" class=\"pageCount\" aria-label=\"Página actual de lectura\">1/1<\/output>\n<section id=\"audioPanel\" class=\"audioPanel\" aria-label=\"Controles de voz\" hidden>\n <div class=\"audioActions\"><button id=\"prev\" type=\"button\" aria-label=\"Página anterior\" title=\"Página anterior\">⏮<\/button><button id=\"play\" type=\"button\" aria-label=\"Escuchar esta página\" title=\"Reproducir\">▶<\/button><button id=\"pause\" type=\"button\" aria-label=\"Pausar o continuar\" title=\"Pausar o continuar\">⏸<\/button><button id=\"next\" type=\"button\" aria-label=\"Página siguiente\" title=\"Página siguiente\">⏭<\/button><\/div>\n <div class=\"audioSpeed\"><label for=\"speed\">Velocidad de voz<\/label><select id=\"speed\"><option value=\"0.75\">0,75×<\/option><option value=\"1\" selected>1×<\/option><option value=\"1.25\">1,25×<\/option><option value=\"1.5\">1,5×<\/option><option value=\"1.75\">1,75×<\/option><option value=\"2\">2×<\/option><\/select><\/div>\n<\/section>\n<div class=\"fontScale\" aria-label=\"Tamaño de letra\">\n <button type=\"button\" id=\"fontUp\" aria-label=\"Aumentar letra\">+<\/button>\n <output id=\"fontValue\" aria-live=\"polite\">14,5<\/output>\n <button type=\"button\" id=\"fontDown\" aria-label=\"Reducir letra\">−<\/button>\n<\/div>\n<section id=\"fontPanel\" class=\"fontPanel\" aria-label=\"Elegir tipo de letra\" hidden>\n <div class=\"fontPanelHeader\"><label for=\"fontFamily\">Tipo de letra<\/label><\/div>\n <select id=\"fontFamily\">\n  <option value=\"system\">Predeterminada (clara)<\/option>\n  <option value=\"verdana\">Verdana<\/option>\n  <option value=\"arial\">Arial<\/option>\n  <option value=\"georgia\">Georgia<\/option>\n <\/select>\n<\/section>\n<section id=\"alignPanel\" class=\"alignPanel\" aria-label=\"Alinear texto\" hidden>\n <div class=\"alignOptions\" role=\"group\" aria-label=\"Alineación del texto\">\n  <button type=\"button\" data-align=\"left\" aria-pressed=\"true\" aria-label=\"Alinear a la izquierda\" title=\"Izquierda\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M3 15h16\"/><\/svg><\/button>\n  <button type=\"button\" data-align=\"center\" aria-pressed=\"false\" aria-label=\"Alinear al centro\" title=\"Centro\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M6 10h12M4 15h16\"/><\/svg><\/button>\n  <button type=\"button\" data-align=\"right\" aria-pressed=\"false\" aria-label=\"Alinear a la derecha\" title=\"Derecha\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M9 10h12M5 15h16\"/><\/svg><\/button>\n <\/div><\/section>\n<button class=\"round alignToggle\" id=\"alignToggle\" type=\"button\" aria-label=\"Alinear texto\" aria-expanded=\"false\" aria-controls=\"alignPanel\" title=\"Alinear texto\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M3 5h18M3 10h12M3 15h16M3 20h13\"/><\/svg><\/button>\n<button class=\"round audioToggle\" id=\"audioToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"audioPanel\" aria-label=\"Abrir controles de voz\">♫<\/button>\n<button class=\"round backToggle\" id=\"backToggle\" type=\"button\" aria-label=\"Volver a seleccionar documento\" title=\"Volver\"><svg viewBox=\"0 0 32 32\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M13 7 5 15l8 7\"/><path d=\"M6 15h13c5 0 8 3 8 7s-3 6-8 6\"/><\/svg><\/button>\n<button class=\"round themeToggle\" id=\"themeToggle\" type=\"button\" aria-label=\"Activar fondo negro y letras blancas\" aria-pressed=\"false\" title=\"Cambiar contraste\"><\/button>\n<button class=\"round fontToggle\" id=\"fontToggle\" type=\"button\" aria-label=\"Elegir letra\" aria-expanded=\"false\" aria-controls=\"fontPanel\">Aa<\/button>\n<\/main>\n<script>\nlet slides=[];\nlet pages=[];\nconst $=id=>document.getElementById(id);\nlet pageIndex=0,audioOpen=false,fontOpen=false,alignOpen=false,fontSize=14.5,activeSpeech=false,paused=false,speechToken=0,lastW=0,lastH=0;\nfunction voz(m){try{window.parent.postMessage(Object.assign({type:'ESTUDIA_VOZ'},m),'*');}catch(e){}}\nfunction setPlayUi(st,pct){\n const p=$('play');\n $('pause').textContent=st==='paused'?'▶':'⏸';\n if(st==='loading'){p.textContent='▶';const t=pct!=null?'Descargando voz '+pct+'%':'Preparando voz…';p.title=t;p.setAttribute('aria-label',t)}\n else{p.textContent='▶';p.title='Reproducir';p.setAttribute('aria-label','Escuchar esta página')}\n}\nfunction pageText(p){return p.items.map(s=>s.title?s.title+'. '+s.body:s.body).join(' ')}\nfunction publishPages(){voz({op:'pages',pages:pages.map(pageText)})}\nfunction esc(s){return String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]))}\nfunction topicHtml(s){return '<article class=\"topic\">'+(s.title?'<h2>'+esc(s.title)+'<\/h2>':'')+'<p>'+esc(s.body)+'<\/p><\/article>'}\nfunction stopSpeech(){speechToken++;voz({op:'stop'});activeSpeech=false;paused=false;setPlayUi('idle')}\n// El paginador conserva las palabras y puede dividir un texto largo entre páginas.\n// Así evita dejar páginas casi vacías solo porque el siguiente bloque es extenso.\nconst ruler=document.createElement('section');\nruler.className='reader';\nruler.setAttribute('aria-hidden','true');\nruler.style.cssText='position:absolute;left:-9999px;top:0;height:auto;max-height:none;overflow:visible;visibility:hidden;pointer-events:none;padding:0;';\n$('app').appendChild(ruler);\nfunction calculatePages(){\n const reader=$('reader');\n lastW=reader.clientWidth;lastH=reader.clientHeight;\n const styles=getComputedStyle(reader);\n const textWidth=Math.max(120,reader.clientWidth-parseFloat(styles.paddingLeft)-parseFloat(styles.paddingRight));\n const fitHeight=Math.max(80,reader.clientHeight-parseFloat(styles.paddingTop)-parseFloat(styles.paddingBottom));\n ruler.style.width=textWidth+'px';\n ruler.replaceChildren();\n const tokenGroups=slides.map(s=>s.body.match(/\\s*\\S+|\\s+/g)||[]);\n const result=[];\n let source=0,offset=0;\n function fits(){return ruler.scrollHeight<=fitHeight+1;}\n function append(part){ruler.insertAdjacentHTML('beforeend',topicHtml(part));}\n while(source<slides.length){\n  const pageStart=source,pageOffset=offset,items=[];\n  ruler.replaceChildren();\n  while(source<slides.length){\n   const words=tokenGroups[source], title=offset===0?slides[source].title:'';\n   const remaining=words.length-offset;\n   const full={title,body:words.slice(offset).join('')};\n   append(full);\n   if(fits()){\n    items.push(full);source++;offset=0;continue;\n   }\n   ruler.lastElementChild.remove();\n   // Ajustar por palabras con búsqueda binaria. No descartar ni repetir fragmentos.\n   let lo=0,hi=remaining;\n   while(lo<hi){\n    const mid=Math.ceil((lo+hi)/2);\n    append({title,body:words.slice(offset,offset+mid).join('')});\n    const ok=fits();ruler.lastElementChild.remove();\n    if(ok)lo=mid;else hi=mid-1;\n   }\n   if(lo===0 && items.length)break;\n   // Si una palabra no cabe siquiera sola, permitirla en página propia con desplazamiento.\n   const take=Math.max(1,lo);\n   const part={title,body:words.slice(offset,offset+take).join('')};\n   append(part);items.push(part);\n   offset+=take;\n   if(offset>=words.length){source++;offset=0;}\n   break;\n  }\n  result.push({start:pageStart,startToken:pageOffset,items});\n }\n return result;\n}\nfunction render(n,stopAudio=true){\n if(n<0||n>=pages.length)return;\n if(stopAudio&&n!==pageIndex)stopSpeech();\n pageIndex=n;\n const page=pages[n];\n $('reader').innerHTML=page.items.map(topicHtml).join('');\n $('reader').scrollTop=0;\n $('prev').disabled=n===0;$('next').disabled=n===pages.length-1;\n $('pageCount').textContent=(n+1)+'/'+pages.length;\n}\nfunction repaginate(){\n const oldPage=pages[pageIndex];\n const source=oldPage?.start??0,token=oldPage?.startToken??0;\n stopSpeech();\n pages=calculatePages();publishPages();\n let target=0;\n pages.forEach((p,i)=>{\n  if(p.start<source || (p.start===source && p.startToken<=token))target=i;\n });\n render(target,false);\n}\nfunction toggleAudio(open){if(open){toggleFont(false);toggleAlign(false);}audioOpen=open;$('audioPanel').hidden=!open;$('audioToggle').setAttribute('aria-expanded',String(open));$('audioToggle').setAttribute('aria-label',open?'Cerrar controles de voz':'Abrir controles de voz');$('audioToggle').textContent=open?'×':'♫'}\nfunction toggleFont(open){if(open)toggleAlign(false);fontOpen=open;$('fontPanel').hidden=!open;$('fontToggle').setAttribute('aria-expanded',String(open));$('fontToggle').setAttribute('aria-label',open?'Cerrar tipos de letra':'Elegir tipo de letra')}\nfunction toggleAlign(open){if(open){toggleFont(false);toggleAudio(false);}alignOpen=open;$('alignPanel').hidden=!open;$('alignToggle').setAttribute('aria-expanded',String(open))}\n$('alignToggle').addEventListener('click',()=>toggleAlign(!alignOpen));\ndocument.querySelectorAll('[data-align]').forEach(button=>button.addEventListener('click',()=>{\n const value=button.dataset.align;\n if(!['left','center','right'].includes(value))return;\n document.documentElement.style.setProperty('--reader-align',value);\n document.querySelectorAll('[data-align]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));\n\n repaginate();\n toggleAlign(false);\n}));\nfunction updateSize(next){\n fontSize=Math.max(12,Math.min(22,Math.round(next*2)/2));\n document.documentElement.style.setProperty('--reader-size',fontSize+'px');\n $('fontValue').textContent=String(fontSize).replace('.',',');\n repaginate();\n}\n$('fontUp').addEventListener('click',()=>updateSize(fontSize+0.5));\n$('fontDown').addEventListener('click',()=>updateSize(fontSize-0.5));\n$('fontToggle').addEventListener('click',()=>{const next=!fontOpen;if(next)toggleAudio(false);toggleFont(next)});\n$('fontFamily').addEventListener('change',e=>{\n const families={system:'system-ui,-apple-system,\"Segoe UI\",Arial,sans-serif',verdana:'Verdana,Geneva,sans-serif',arial:'Arial,Helvetica,sans-serif',georgia:'Georgia,\"Times New Roman\",serif'};\n document.documentElement.style.setProperty('--reader-font',families[e.target.value]||families.system);\n repaginate();\n});\n$('themeToggle').addEventListener('click',()=>{\n const dark=$('app').classList.toggle('dark');\n $('themeToggle').setAttribute('aria-pressed',String(dark));\n $('themeToggle').setAttribute('aria-label',dark?'Activar fondo blanco y letras negras':'Activar fondo negro y letras blancas');\n});\n$('audioToggle').addEventListener('click',()=>toggleAudio(!audioOpen));\nfunction changePage(delta){\n const target=pageIndex+delta;\n if(target<0||target>=pages.length)return;\n const resumeAudio=activeSpeech;\n render(target);\n if(resumeAudio)startReading();\n}\n$('prev').addEventListener('click',()=>changePage(-1));\n$('next').addEventListener('click',()=>changePage(1));\n$('backToggle').addEventListener('click',()=>{stopSpeech();toggleAudio(false);toggleFont(false);toggleAlign(false);window.parent.postMessage({type:'ESTUDIA_LECTURA_VOLVER'},'*');});\nfunction startReading(){\n if(!pages.length)return;\n stopSpeech();\n activeSpeech=true;paused=false;setPlayUi('loading');\n voz({op:'play',page:pageIndex,speed:Number($('speed').value)});\n}\n$('play').addEventListener('click',startReading);\n$('pause').addEventListener('click',()=>{\n if(!activeSpeech)return;\n voz({op:paused?'resume':'pause'});\n paused=!paused;setPlayUi(paused?'paused':'playing');\n});\n$('speed').addEventListener('change',()=>voz({op:'speed',value:Number($('speed').value)}));\nwindow.addEventListener('message',e=>{\n if(e.source!==window.parent||!e.data||e.data.type!=='ESTUDIA_VOZ_EVT')return;\n const m=e.data;\n if(m.evt==='page'){if(Number.isInteger(m.page)&&m.page>=0&&m.page<pages.length&&m.page!==pageIndex)render(m.page,false)}\n else if(m.evt==='state'){if(!activeSpeech)return;paused=m.state==='paused';setPlayUi(m.state,m.pct)}\n else if(m.evt==='end'){activeSpeech=false;paused=false;setPlayUi('idle')}\n else if(m.evt==='error'){activeSpeech=false;paused=false;setPlayUi('idle');alert(m.msg||'No se pudo reproducir la voz.')}\n else if(m.evt==='media'){if(m.action==='prev')changePage(-1);else if(m.action==='next')changePage(1)}\n});\nwindow.addEventListener('pagehide',stopSpeech);\n// No pausar automáticamente la narración al ocultarse la página o bloquearse la pantalla.\ndocument.addEventListener('keydown',e=>{if(e.key==='Escape'){toggleAudio(false);toggleFont(false)}else if(e.key==='ArrowLeft')changePage(-1);else if(e.key==='ArrowRight')changePage(1)});\nlet startX=null,startY=null;\n$('reader').addEventListener('touchstart',e=>{if(e.touches.length===1){startX=e.touches[0].clientX;startY=e.touches[0].clientY}},{passive:true});\n$('reader').addEventListener('touchend',e=>{if(startX===null)return;const dx=e.changedTouches[0].clientX-startX,dy=e.changedTouches[0].clientY-startY;startX=startY=null;if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.5)changePage(dx<0?1:-1)},{passive:true});\nwindow.addEventListener('message', e => {\n  if (e.source !== window.parent || !e.data || e.data.type !== 'ESTUDIA_LECTURA') return;\n  if (!Array.isArray(e.data.slides)) return;\n  stopSpeech();\n  slides=e.data.slides.filter(x=>x && typeof x.title==='string' && typeof x.body==='string');\n  pageIndex=0;\n  if(!slides.length){$('reader').textContent='Esta guía no contiene texto legible.';$('pageCount').textContent='0/0';return;}\n  pages=calculatePages();publishPages();render(0);\n});\nlet resizeFrame=0;\nwindow.addEventListener('resize',()=>{\n if(!slides.length)return;\n cancelAnimationFrame(resizeFrame);\n resizeFrame=requestAnimationFrame(()=>{const r=$('reader');if(r.clientWidth===lastW&&r.clientHeight===lastH)return;repaginate()});\n});\n\n<\/script><\/body><\/html>";
       function aviso(s){estado.textContent=s||'';}
       function volver(){
         ++seq;
+        if(window.EstudiaVoz)window.EstudiaVoz.detener();
         if(frame.contentWindow) frame.contentWindow.postMessage({type:'ESTUDIA_LECTURA',slides:[]},'*');
         frame.removeAttribute('srcdoc');activo.hidden=true;selector.hidden=false;ocupada=false;
         abrir.disabled=!seleccionado;
@@ -2264,6 +2521,7 @@
         return x.map(function(s){return {title:String(s.title||'Sin título'),body:String(s.body||''),section:String(s.section||'')};});
       }
       function inyectar(datos){
+        if(window.EstudiaVoz)window.EstudiaVoz.detener();
         selector.hidden=true;activo.hidden=false;
         frame.onload=function(){frame.contentWindow.postMessage({type:'ESTUDIA_LECTURA',slides:datosPaginados(datos)},'*');};
         frame.srcdoc=plantilla;
