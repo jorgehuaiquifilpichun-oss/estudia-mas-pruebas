@@ -2251,11 +2251,13 @@
           window.Module={
             locateFile:function(p){return BASE+p;},
             setStatus:function(t){
-              if(!t){wasmListo=true;intentar();return;}
+              // El mensaje vacío de setStatus no asegura que el runtime esté inicializado.
+              if(!t)return;
               armar();
               var m=String(t).match(/Downloading data\.\.\. \((\d+)\/(\d+)\)/);
               if(m&&Number(m[2])>0)aFrame({evt:'state',state:'loading',pct:Math.round(Number(m[1])/Number(m[2])*100)});
             },
+            onRuntimeInitialized:function(){wasmListo=true;intentar();},
             onAbort:function(w){fallo(new Error('Piper se detuvo: '+w));}
           };
           armar();
