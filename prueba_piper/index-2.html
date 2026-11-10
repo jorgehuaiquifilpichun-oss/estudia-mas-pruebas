@@ -2398,7 +2398,7 @@
           if(s!==sesion)return;
           esperando=true;bomba(s);
         }).catch(function(e){
-          if(s===sesion)fallar(e,'No se pudo cargar la voz Piper. Revisa tu conexión y que la carpeta «piper» esté publicada, y recarga la página.');
+          if(s===sesion)fallar(e,'No se pudo cargar la voz Piper. Detalle técnico: '+String(e&&e.message?e.message:e));
         });
       }
       function pausar(){
