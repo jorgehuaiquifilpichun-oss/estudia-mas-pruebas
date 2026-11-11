@@ -2239,6 +2239,8 @@
           function intentar(){
             if(creado||!wasmListo||!apiLista)return;
             creado=true;clearTimeout(vigia);
+            avisoDiagnostico('Creando motor Piper: iniciando createOfflineTts');
+            var inicioCreacion=Date.now();
             try{
               var t=createOfflineTts(window.Module,{
                 offlineTtsModelConfig:{
@@ -2247,8 +2249,8 @@
                 },
                 ruleFsts:'',ruleFars:'',maxNumSentences:1
               });
-              motor=t;avisoDiagnostico('Motor Piper creado correctamente');ok(t);
-            }catch(e){mal(e);}
+              motor=t;avisoDiagnostico('Motor Piper creado correctamente en '+(Date.now()-inicioCreacion)+' ms');ok(t);
+            }catch(e){avisoDiagnostico('ERROR al crear motor Piper: '+(e&&e.message?e.message:String(e)));mal(e);}
           }
           window.Module={
             locateFile:function(p){return BASE+p;},
