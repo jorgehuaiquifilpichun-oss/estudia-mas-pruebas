@@ -2188,7 +2188,7 @@
     // El motor y el reproductor de audio viven en esta página (no en el iframe), así no se recargan al cerrar el lector.
     // El iframe solo muestra el texto y envía órdenes por postMessage (ESTUDIA_VOZ); aquí se responden con ESTUDIA_VOZ_EVT.
     (function(){
-      var BASE='piper/';                      // Carpeta con los 4 archivos de Piper, relativa a index.html.
+      var BASE='prueba_piper/piper/';                      // Carpeta con los 4 archivos de Piper, relativa a index.html.
       var MODELO='./es_MX-ald-medium.onnx';   // Rutas internas del paquete .data (tomadas de piper.html de la demo).
       var MAX_TROZO=220;                      // Caracteres máximos por fragmento de voz.
       var ADELANTE=3;                         // Fragmentos que se preparan por adelantado (límite de memoria).
