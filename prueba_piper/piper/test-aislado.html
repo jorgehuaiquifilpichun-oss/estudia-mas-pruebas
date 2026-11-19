@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Diagnóstico aislado de Piper</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#f3f6fa;color:#172537;padding:20px}
+main{max-width:720px;margin:auto}h1{font-size:1.45rem;margin:0 0 8px}
+p{line-height:1.5;margin:9px 0}.muted{color:#516070;font-size:.93rem}
+.panel{background:#fff;border:1px solid #d5dfeb;border-radius:12px;padding:16px;margin:16px 0}
+button{font:inherit;font-weight:650;padding:13px 20px;border:0;border-radius:10px;background:#14633c;color:#fff;cursor:pointer;min-height:48px}
+button:disabled{opacity:.6;cursor:wait}#estado{font-weight:650;overflow-wrap:anywhere}#log{font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;background:#0c1927;color:#e7f5ee;padding:14px;border-radius:9px;max-height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.ok{color:#116943}.error{color:#b12a22}.warn{color:#9c6300}audio{width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>Prueba aislada de voz Piper</h1>
+<p class="muted">Archivo independiente para <code>prueba_piper/piper/</code>. No utiliza Estudia+ ni su lector. La primera ejecución debe descargar aproximadamente 49 MB de recursos, según la caché del navegador.</p>
+<section class="panel">
+<p>Frase de prueba: <strong>Hola, esta es una prueba de voz.</strong></p>
+<button id="probar" type="button">▶ Iniciar prueba Piper</button>
+<p id="estado" role="status" aria-live="polite">Esperando que presiones el botón.</p>
+<audio id="reproductor" controls preload="none"></audio>
+</section>
+<section class="panel"><h2 style="font-size:1.1rem;margin-top:0">Registro de diagnóstico</h2><div id="log" aria-label="Mensajes de diagnóstico">Todavía no se ha iniciado la prueba.</div></section>
+<p class="muted">Si el proceso se queda detenido, espera hasta 2 minutos y envía una captura de este registro. No cierres esta pestaña mientras se descargan los recursos. Para repetir una prueba interrumpida, recarga la página.</p>
+</main>
+<script>
+(function(){
+'use strict';
+const boton=document.getElementById('probar');
+const estado=document.getElementById('estado');
+const logEl=document.getElementById('log');
+const reproductor=document.getElementById('reproductor');
+const inicioPagina=performance.now();
+const FRASE='Hola, esta es una prueba de voz.';
+const sizeEsperado=36577493;
+let inicioPrueba=0, iniciado=false, wasmListo=false, apiLista=false, creando=false, completado=false;
+let ultimoLog='';
+function log(msg,tipo){
+  const seg=((performance.now()-(inicioPrueba||inicioPagina))/1000).toFixed(1);
+  const linea='['+seg+' s] '+String(msg);
+  if(!iniciado){logEl.textContent='';}
+  logEl.textContent+=linea+'\n';
+  logEl.scrollTop=logEl.scrollHeight;
+  ultimoLog=linea;
+  if(tipo==='error')console.error('[Piper aislado]',msg);else console.info('[Piper aislado]',msg);
+}
+function estadoActual(msg,tipo){estado.textContent=msg;estado.className=tipo||'';log(msg,tipo);}
+function error(e,etapa){
+  if(completado)return;
+  completado=true;
+  estadoActual('ERROR en '+etapa+': '+(e&&e.message?e.message:String(e)),'error');
+  boton.disabled=false;boton.textContent='Recargar para volver a intentar';
+  boton.onclick=function(){location.reload();};
+}
+window.addEventListener('error',function(e){
+  log('Error global: '+(e.message||'sin descripción'),'error');
+});
+window.addEventListener('unhandledrejection',function(e){
+  log('Promesa rechazada: '+(e.reason&&e.reason.message?e.reason.message:String(e.reason)),'error');
+});
+function cargar(src){
+  return new Promise(function(resolve,reject){
+    const el=document.createElement('script');el.src=src;el.async=false;
+    el.onload=function(){log('JavaScript descargado y ejecutado: '+src);resolve();};
+    el.onerror=function(){reject(new Error('No se pudo cargar '+src));};
+    document.head.appendChild(el);
+  });
+}
+function verificarFS(){
+  const fs=(window.Module&&window.Module.FS)||window.FS;
+  if(!fs||typeof fs.stat!=='function'){log('Aviso: FS.stat no está expuesto en JavaScript; se continuará con createOfflineTts.','warn');return;}
+  for(const ruta of ['/es_MX-ald-medium.onnx','/tokens.txt','/espeak-ng-data']){
+    const info=fs.stat(ruta);
+    log('FS.stat '+ruta+' → OK'+(typeof info.size==='number'?' ('+info.size+' bytes)':''));
+  }
+}
+function wav(samples,hz){
+  if(!samples||!samples.length||!Number.isFinite(hz)||hz<=0)throw new Error('Muestras o sampleRate inválidos');
+  const len=samples.length;
+  const buffer=new ArrayBuffer(44+2*len),view=new DataView(buffer);
+  function texto(offset,str){for(let i=0;i<str.length;i++)view.setUint8(offset+i,str.charCodeAt(i));}
+  texto(0,'RIFF');view.setUint32(4,36+len*2,true);texto(8,'WAVE');texto(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
+  view.setUint32(24,hz,true);view.setUint32(28,hz*2,true);
+  view.setUint16(32,2,true);view.setUint16(34,16,true);texto(36,'data');view.setUint32(40,len*2,true);
+  for(let i=0;i<len;i++){
+    let x=Math.max(-1,Math.min(1,Number(samples[i])||0));
+    view.setInt16(44+i*2,x<0?Math.round(x*32768):Math.round(x*32767),true);
+  }
+  return new Blob([buffer],{type:'audio/wav'});
+}
+async function crearYProbar(){
+  if(creando||completado||!wasmListo||!apiLista)return;
+  creando=true;
+  try{
+    verificarFS();
+    if(typeof window.createOfflineTts!=='function')throw new Error('createOfflineTts no está disponible');
+    estadoActual('Creando motor con createOfflineTts…');
+    // Permitir que el registro se pinte antes de la operación síncrona.
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    const t0=performance.now();
+    const motor=window.createOfflineTts(window.Module,{
+      offlineTtsModelConfig:{
+        offlineTtsVitsModelConfig:{model:'./es_MX-ald-medium.onnx',lexicon:'',tokens:'./tokens.txt',dataDir:'./espeak-ng-data',noiseScale:0.667,noiseScaleW:0.8,lengthScale:1.0},
+        numThreads:1,debug:0,provider:'cpu'
+      },ruleFsts:'',ruleFars:'',maxNumSentences:1
+    });
+    log('createOfflineTts finalizó en '+Math.round(performance.now()-t0)+' ms');
+    if(!motor||!motor.handle)throw new Error('El motor no devolvió un identificador válido (handle)');
+    log('Motor: sampleRate='+motor.sampleRate+', numSpeakers='+motor.numSpeakers);
+    estadoActual('Generando audio con motor.generate(…)…');
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    const t1=performance.now();
+    const resultado=motor.generate({text:FRASE,sid:0,speed:1.0});
+    log('generate finalizó en '+Math.round(performance.now()-t1)+' ms');
+    if(!resultado||!resultado.samples)throw new Error('generate no devolvió samples');
+    let max=0;
+    for(let i=0;i<resultado.samples.length;i++){const x=Math.abs(resultado.samples[i]);if(x>max)max=x;}
+    log('Muestras: '+resultado.samples.length+' | Frecuencia: '+resultado.sampleRate+' Hz | Amplitud máxima: '+max.toFixed(6));
+    if(!resultado.samples.length)throw new Error('La síntesis devolvió cero muestras');
+    const blob=wav(resultado.samples,resultado.sampleRate);
+    const url=URL.createObjectURL(blob);
+    reproductor.src=url;reproductor.loop=false;
+    estadoActual('Audio generado. Intentando reproducir…');
+    try{
+      await reproductor.play();
+      completado=true;
+      estadoActual('La reproducción comenzó. Confirma si escuchas la frase.','ok');
+    }catch(e){
+      completado=true;
+      estadoActual('El motor generó audio, pero el navegador no inició la reproducción: '+(e&&e.name?e.name+': ':'')+(e&&e.message?e.message:String(e)),'warn');
+      log('Prueba el botón ▶ del reproductor visible para oír el archivo generado.');
+    }
+    boton.disabled=true;boton.textContent='Prueba terminada';
+  }catch(e){error(e,creando?'creación o generación':'inicialización');}
+}
+function comenzar(){
+  if(iniciado)return;
+  iniciado=true;inicioPrueba=performance.now();logEl.textContent='';
+  boton.disabled=true;
+  estadoActual('Iniciando descarga y carga de Piper…');
+  // La generación aislada usa el audio HTML5 del lector real.
+  // Registrar el gesto del usuario sin crear audio sintético externo.
+  let recordatorios=[45000,120000];
+  recordatorios.forEach(ms=>setTimeout(function(){if(!completado)log('Transcurrieron '+(ms/1000)+' s. Último evento: '+ultimoLog);},ms));
+  // El empaquetador Emscripten puede cargar el .data antes de iniciar WebAssembly.
+  window.Module={
+    locateFile:function(nombre){log('locateFile: '+nombre);return nombre;},
+    setStatus:function(msg){if(msg&&(/Download|Prepar|Running|Initializing|dependenc|unpack/i).test(msg))log('Estado Emscripten: '+msg);},
+    print:function(msg){log('WASM stdout: '+msg);},
+    printErr:function(msg){log('WASM stderr: '+msg,'error');},
+    onRuntimeInitialized:function(){wasmListo=true;estadoActual('WebAssembly inicializado; esperando API JavaScript…');crearYProbar();},
+    onAbort:function(msg){error(new Error('WebAssembly abortó: '+msg),'WebAssembly');}
+  };
+  cargar('sherpa-onnx-wasm-main-tts.js')
+    .then(()=>cargar('sherpa-onnx-tts.js'))
+    .then(function(){apiLista=true;log('API de sherpa-onnx cargada');crearYProbar();})
+    .catch(function(e){error(e,'carga de JavaScript');});
+}
+boton.addEventListener('click',comenzar);
+})();
+</script>
+</body>
+</html>
