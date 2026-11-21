@@ -2201,7 +2201,7 @@
       function aFrame(d){
         try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage(Object.assign({type:'ESTUDIA_VOZ_EVT'},d),'*');}catch(e){}
       }
-      function avisoDiagnostico(t){console.info('[Piper diagnóstico]',t);aFrame({evt:'diag',msg:String(t)});}
+      function avisoDiagnostico(t){console.info('[Piper diagnóstico]',t);if(window.__piperDiagLog)window.__piperDiagLog(t);aFrame({evt:'diag',msg:String(t)});}
       function estado(st,pct){
         aFrame({evt:'state',state:st,pct:pct});
         try{if('mediaSession' in navigator)navigator.mediaSession.playbackState=(st==='paused'?'paused':'playing');}catch(e){}
@@ -2337,7 +2337,7 @@
       function esperar(){
         esperando=true;estado('loading');
         // Silencio en bucle mientras se prepara el siguiente fragmento, para no soltar el audio del sistema.
-        if(silencio&&!audio.loop){audio.loop=true;audio.src=silencio;urlActual='';audio.play().catch(function(){});}
+        if(silencio&&!audio.loop){audio.loop=true;audio.src=silencio;urlActual='';audio.play().then(function(){avisoDiagnostico('Silencio de espera: reproducción aceptada');}).catch(function(e){avisoDiagnostico('Silencio de espera: '+(e&&e.name?e.name:'Error')+' - '+(e&&e.message?e.message:String(e)));});}
         bomba(sesion);
       }
       function sonar(){
@@ -2349,11 +2349,12 @@
         if(pos.p!==mostrada){mostrada=pos.p;aFrame({evt:'page',page:pos.p});titulo(pos.p);}
         urlActual=e.url;audio.src=e.url;audio.playbackRate=velocidad;
         avisoDiagnostico('Audio generado; intentando reproducir');
-        audio.play().catch(errorPlay);
+        audio.play().then(function(){avisoDiagnostico('Audio de voz: reproducción aceptada');}).catch(errorPlay);
         estado('playing');
         bomba(sesion);
       }
       function errorPlay(e){
+        avisoDiagnostico('Audio de voz: '+(e&&e.name?e.name:'Error')+' - '+(e&&e.message?e.message:String(e)));
         if(!e||e.name==='AbortError')return;
         if(e.name==='NotAllowedError')fallar(e,'El navegador bloqueó el audio. Pulsa ▶ otra vez.');
         else fallar(e,'No se pudo reproducir el audio de Piper.');
@@ -2402,7 +2403,7 @@
         setTimeout(function(){if(s===sesion&&activo&&esperando)avisoDiagnostico('Sigue preparando la voz después de 20 segundos');},20000);
         preparaAudio();ponerMediaSession();estado('loading');
         // Con el toque del usuario aún vigente, se «abre» el audio con un silencio breve.
-        audio.loop=true;audio.src=silencio;urlActual='';audio.play().catch(function(){});
+        audio.loop=true;audio.src=silencio;urlActual='';audio.play().then(function(){avisoDiagnostico('Audio inicial: reproducción aceptada');}).catch(function(e){avisoDiagnostico('Audio inicial: '+(e&&e.name?e.name:'Error')+' - '+(e&&e.message?e.message:String(e)));});
         cargarMotor().then(function(){
           if(s!==sesion)return;
           avisoDiagnostico('Motor listo; iniciando síntesis');
@@ -2441,7 +2442,7 @@
         var d=ev.data;
         if(!frame||ev.source!==frame.contentWindow||!d||d.type!=='ESTUDIA_VOZ')return;
         if(d.op==='play')avisoDiagnostico('Orden de reproducción recibida en Estudia+');
-        if(d.op==='pages'){if(Array.isArray(d.pages)){detener();paginas=d.pages.map(String);cache={};}}
+        if(d.op==='pages'){if(Array.isArray(d.pages)){detener();paginas=d.pages.map(String);cache={};avisoDiagnostico('Páginas recibidas: '+paginas.length);}}
         else if(d.op==='play')iniciar(Math.max(0,Math.floor(Number(d.page))||0),Number(d.speed));
         else if(d.op==='pause')pausar();
         else if(d.op==='resume')reanudar();
@@ -2662,6 +2663,42 @@
     window.addEventListener('hashchange', mostrar);
     mostrar();
   })();
+</script>
+
+<!-- Diagnóstico de Piper (visible únicamente en Leer y escuchar; sin modificar autenticación) -->
+<style>
+#piper-diag-abrir{position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:10001;display:none;background:#142e50;color:white;border:2px solid white;border-radius:13px;font:700 12px system-ui;padding:7px 10px;box-shadow:0 2px 8px #0005}
+body:has(#leer-escuchar.activa #lector-activo:not([hidden])) #piper-diag-abrir{display:block}
+#piper-diag-panel{position:fixed;inset:auto 8px calc(env(safe-area-inset-bottom,0px) + 7px) 8px;z-index:10002;background:#fff;color:#15243d;border:2px solid #23558a;border-radius:14px;padding:9px;max-height:50dvh;box-shadow:0 4px 20px #0006;font:12px system-ui;display:none}
+#piper-diag-panel.abierto{display:block}
+#piper-diag-panel pre{white-space:pre-wrap;overflow:auto;max-height:30dvh;background:#f4f7fd;padding:8px;border-radius:8px;font:11px/1.35 monospace;margin:6px 0}
+#piper-diag-panel button{border:1px solid #24568a;background:#edf5ff;color:#15395c;border-radius:8px;min-height:34px;padding:5px 9px;font-weight:700}
+</style>
+<button id="piper-diag-abrir" type="button" aria-controls="piper-diag-panel" aria-expanded="false">Diagnóstico Piper</button>
+<div id="piper-diag-panel" role="region" aria-label="Registro de diagnóstico Piper">
+ <div style="display:flex;gap:6px;align-items:center;justify-content:space-between"><strong>Diagnóstico Piper</strong><button id="piper-diag-cerrar" type="button">Cerrar</button></div>
+ <pre id="piper-diag-registro">Esperando botón Play…</pre>
+ <div style="display:flex;gap:6px"><button id="piper-diag-copiar" type="button">Copiar registro</button><button id="piper-diag-limpiar" type="button">Limpiar</button></div>
+</div>
+<script>
+(function(){
+  var registros=[], panel=document.getElementById('piper-diag-panel'), pre=document.getElementById('piper-diag-registro'), abrir=document.getElementById('piper-diag-abrir');
+  function pintar(){pre.textContent=registros.join('\n')||'Esperando botón Play…';pre.scrollTop=pre.scrollHeight;}
+  window.__piperDiagLog=function(m){
+    registros.push(new Date().toLocaleTimeString('es-CL',{hour12:false})+' | '+String(m));
+    if(registros.length>100)registros.shift();
+    pintar();
+  };
+  abrir.addEventListener('click',function(){panel.classList.add('abierto');abrir.setAttribute('aria-expanded','true');pintar();});
+  document.getElementById('piper-diag-cerrar').addEventListener('click',function(){panel.classList.remove('abierto');abrir.setAttribute('aria-expanded','false');});
+  document.getElementById('piper-diag-limpiar').addEventListener('click',function(){registros=[];pintar();});
+  document.getElementById('piper-diag-copiar').addEventListener('click',async function(){
+    var t=registros.join('\n');
+    try{await navigator.clipboard.writeText(t);this.textContent='Copiado';}
+    catch(e){this.textContent='No se pudo copiar; haz captura';}
+  });
+  window.__piperDiagLog('Panel de diagnóstico disponible.');
+})();
 </script>
 </body>
 </html>
