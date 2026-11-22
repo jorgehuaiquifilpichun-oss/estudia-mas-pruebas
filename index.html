@@ -482,6 +482,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-subir" viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-drive" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17.1 8.7 4.7 4.7 0 0 1 17 18zM12 10v6m0 0-2.5-2.5M12 16l2.5-2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.4-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z" fill="currentColor"/></symbol>
     <symbol id="i-libro" viewBox="0 0 24 24"><path d="M2 5.2c3-1.3 6.5-1.2 9.2.6v14c-2.7-1.8-6.2-1.9-9.2-.6zM22 5.2c-3-1.3-6.5-1.2-9.2.6v14c2.7-1.8 6.2-1.9 9.2-.6z" fill="currentColor"/></symbol>
     <symbol id="i-barras" viewBox="0 0 24 24"><rect x="3" y="13" width="5" height="8" rx="1.3" fill="currentColor"/><rect x="9.5" y="8" width="5" height="13" rx="1.3" fill="currentColor"/><rect x="16" y="3" width="5" height="18" rx="1.3" fill="currentColor"/></symbol>
@@ -620,6 +621,7 @@
           <ol id="subida-orden" style="text-align:left;overflow-wrap:anywhere"></ol>
         </div>
         <button class="boton b-azul" type="submit" id="boton-subir"><svg><use href="#i-subir"/></svg><span id="texto-subir">Subir archivo</span></button>
+        <button class="boton b-verde" type="button" id="boton-drive"><svg><use href="#i-drive"/></svg><span id="texto-drive">Importar desde Google Drive</span></button>
       </form>
       <p class="estado-arch" id="estado-subida" role="status" aria-live="polite"></p>
       <a class="volver" id="ir-biblioteca" href="#biblioteca" hidden>Ver mis guías</a>
@@ -1526,6 +1528,216 @@
       } finally {
         aOcupado = false; aBoton.disabled = false; aTexto.textContent = aArchivosOrdenados.length > 1 ? 'Subir guía conjunta' : 'Subir archivo';
         aInput.disabled = false; aNombre.disabled = false; refrescarSeleccionSubida();
+      }
+    });
+    // ===== Importar desde Google Drive (solo Drive → Estudia+) =====
+    // Reutiliza BUCKET, MIME, MAX_BYTES, cliente, usuarioValido, borrarObjeto, msg y errSesion. No exporta ni modifica nada en Drive.
+    // Alcance único: drive.file (solo lectura de lo que el usuario elige en el selector oficial). No se guardan tokens: viven en memoria y se revocan al terminar.
+    var GDRIVE = {
+      CLIENT_ID: '100584008176-u97l7rluk1uofkpi3s1ba1q8cnu9vtsr.apps.googleusercontent.com',
+      API_KEY: 'AIzaSyBP8rIWd1noxtO3FQkyROSlHTnbdwwT3cw',
+      APP_ID: '100584008176'
+    };
+    var GD_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+    var GD_EXT_POR_MIME = { 'application/pdf': 'pdf', 'application/msword': 'doc', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx', 'application/vnd.ms-powerpoint': 'ppt', 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx', 'image/jpeg': 'jpg', 'image/png': 'png' };
+    var GD_EXPORTAR = { 'application/vnd.google-apps.document': 'docx', 'application/vnd.google-apps.presentation': 'pptx' };
+    var gdBoton = document.getElementById('boton-drive'), gdTexto = document.getElementById('texto-drive');
+    var gdOcupado = false, gdScripts = {}, gdPickerListo = false;
+    function gdConfigurado() {
+      return /^[^\s]+\.apps\.googleusercontent\.com$/.test(GDRIVE.CLIENT_ID) && /^[^\s]{20,}$/.test(GDRIVE.API_KEY) && /^\d{6,}$/.test(GDRIVE.APP_ID);
+    }
+    function gdError(c) { return new Error(c); }
+    function gdCargarScript(src) {
+      if (gdScripts[src]) return gdScripts[src];
+      gdScripts[src] = new Promise(function (res, rej) {
+        var s = document.createElement('script'); s.src = src; s.async = true;
+        s.onload = function () { res(); };
+        s.onerror = function () { delete gdScripts[src]; s.remove(); rej(gdError('gd_red')); };
+        document.head.appendChild(s);
+      });
+      return gdScripts[src];
+    }
+    async function gdPrepararLibrerias() {
+      await Promise.all([gdCargarScript('https://accounts.google.com/gsi/client'), gdCargarScript('https://apis.google.com/js/api.js')]);
+      if (!window.google || !google.accounts || !window.gapi) throw gdError('gd_red');
+      if (!gdPickerListo) {
+        await new Promise(function (res, rej) {
+          gapi.load('picker', { callback: res, onerror: function () { rej(gdError('gd_red')); }, timeout: 15000, ontimeout: function () { rej(gdError('gd_red')); } });
+        });
+        gdPickerListo = true;
+      }
+    }
+    // Precarga (sin autorizar nada) para que el permiso de ventana emergente no se pierda al pulsar el botón.
+    function gdPrecargar() { if (gdConfigurado() && location.hash === '#subir') gdPrepararLibrerias().catch(function () {}); }
+    window.addEventListener('hashchange', gdPrecargar); gdPrecargar();
+    function gdPedirToken() {
+      return new Promise(function (res, rej) {
+        var cli = google.accounts.oauth2.initTokenClient({
+          client_id: GDRIVE.CLIENT_ID, scope: GD_SCOPE, prompt: 'select_account',
+          callback: function (r) {
+            if (r && r.access_token && !r.error && google.accounts.oauth2.hasGrantedAllScopes(r, GD_SCOPE)) res(r.access_token);
+            else rej(gdError(r && r.error === 'access_denied' ? 'gd_cancel' : 'gd_auth'));
+          },
+          error_callback: function (e) { rej(gdError(e && e.type === 'popup_closed' ? 'gd_cancel' : 'gd_auth')); }
+        });
+        cli.requestAccessToken();
+      });
+    }
+    function gdElegir(token) {
+      return new Promise(function (res, rej) {
+        var fin = false;
+        function una(v, e) { if (fin) return; fin = true; if (e) rej(e); else res(v); }
+        try {
+          var tipos = Object.keys(GD_EXT_POR_MIME).concat(Object.keys(GD_EXPORTAR)).join(',');
+          function vista(propios) {
+            var v = new google.picker.DocsView(google.picker.ViewId.DOCS).setMimeTypes(tipos).setIncludeFolders(true).setSelectFolderEnabled(false);
+            return propios ? v : v.setOwnedByMe(false);
+          }
+          var picker = new google.picker.PickerBuilder()
+            .setAppId(GDRIVE.APP_ID).setOAuthToken(token).setDeveloperKey(GDRIVE.API_KEY).setLocale('es')
+            .addView(vista(true)).addView(vista(false))
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+            .setCallback(function (d) {
+              var a = d[google.picker.Response.ACTION];
+              if (a === google.picker.Action.PICKED) {
+                una((d[google.picker.Response.DOCUMENTS] || []).map(function (x) { return { id: x[google.picker.Document.ID], nombre: x[google.picker.Document.NAME] }; }));
+              } else if (a === google.picker.Action.CANCEL) una(null);
+            }).build();
+          picker.setVisible(true);
+        } catch (e) { una(null, gdError('gd_red')); }
+      });
+    }
+    async function gdHttp(url, token, formato) {
+      var ctrl = new AbortController(), t = setTimeout(function () { ctrl.abort(); }, 180000), r;
+      try { r = await fetch(url, { headers: { Authorization: 'Bearer ' + token }, signal: ctrl.signal, cache: 'no-store' }); }
+      catch (e) { clearTimeout(t); throw gdError('gd_red'); }
+      try {
+        if (!r.ok) {
+          var razon = '';
+          try { var j = await r.json(); razon = (j && j.error && j.error.errors && j.error.errors[0] && j.error.errors[0].reason) || ''; } catch (e) {}
+          if (razon === 'exportSizeLimitExceeded') throw gdError('gd_export_grande');
+          if (r.status === 401) throw gdError('gd_auth');
+          if (r.status === 403 || r.status === 404) throw gdError('gd_permiso');
+          throw gdError('gd_red');
+        }
+        return formato === 'json' ? await r.json() : await r.blob();
+      } catch (e) { if (e && /^gd_/.test(e.message)) throw e; throw gdError('gd_red'); }
+      finally { clearTimeout(t); }
+    }
+    async function gdFirmaValida(blob, ext) {
+      var b = new Uint8Array(await blob.slice(0, 1024).arrayBuffer());
+      function inicia(a) { return a.every(function (v, i) { return b[i] === v; }); }
+      if (ext === 'pdf') { for (var k = 0; k + 3 < b.length; k++) if (b[k] === 0x25 && b[k + 1] === 0x50 && b[k + 2] === 0x44 && b[k + 3] === 0x46) return true; return false; } // «%PDF» en el primer KB
+      if (ext === 'docx' || ext === 'pptx') return inicia([0x50, 0x4B, 0x03, 0x04]);
+      if (ext === 'doc' || ext === 'ppt') return inicia([0xD0, 0xCF, 0x11, 0xE0]);
+      if (ext === 'jpg' || ext === 'jpeg') return inicia([0xFF, 0xD8, 0xFF]);
+      if (ext === 'png') return inicia([0x89, 0x50, 0x4E, 0x47]);
+      return false;
+    }
+    // Devuelve { f: File, ext }. Lanza errores gd_*; nunca devuelve un archivo incompleto.
+    async function gdObtener(sel, token) {
+      var base = 'https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(sel.id);
+      var meta = await gdHttp(base + '?fields=id,name,mimeType,size,trashed&supportsAllDrives=true', token, 'json');
+      if (!meta || meta.trashed) throw gdError('gd_permiso');
+      var nativo = GD_EXPORTAR[meta.mimeType], ext = nativo || GD_EXT_POR_MIME[meta.mimeType], esperado = null, url;
+      if (!ext) throw gdError('gd_incompatible');
+      if (nativo) url = base + '/export?mimeType=' + encodeURIComponent(MIME[ext]);
+      else {
+        esperado = Number(meta.size);
+        if (!(esperado >= 0)) throw gdError('gd_corrupto');
+        if (esperado === 0) throw gdError('gd_vacio');
+        if (esperado > MAX_BYTES) throw gdError('gd_grande');
+        url = base + '?alt=media&supportsAllDrives=true';
+      }
+      var blob = await gdHttp(url, token, 'blob');
+      if (!blob.size) throw gdError('gd_vacio');
+      if (blob.size > MAX_BYTES) throw gdError('gd_grande');
+      if (esperado !== null && blob.size !== esperado) throw gdError('gd_corrupto');
+      if (!(await gdFirmaValida(blob, ext))) throw gdError('gd_corrupto');
+      var nombre = String(meta.name || sel.nombre || 'Documento de Drive').replace(/[\\/:*?"<>|\x00-\x1f]/g, ' ').trim() || 'Documento de Drive';
+      var extNombre = (nombre.split('.').length > 1 ? nombre.split('.').pop() : '').toLowerCase();
+      if (MIME[extNombre] && MIME[extNombre] === MIME[ext]) ext = extNombre;
+      else nombre = nombre + '.' + ext;
+      return { f: new File([blob], nombre, { type: MIME[ext] }), ext: ext };
+    }
+    // Misma lógica que la subida local: archivo → registro; si el registro falla se limpia el archivo físico con comprobación real.
+    async function gdGuardar(f, ext) {
+      var u = await usuarioValido();
+      if (!u) throw new Error('Not authenticated');
+      var ruta = u.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 10) + '.' + ext;
+      var up = await cliente.storage.from(BUCKET).upload(ruta, f, { contentType: MIME[ext], upsert: false });
+      if (up.error) throw up.error;
+      var ins = await cliente.from('archivos_usuario').insert({ nombre_original: f.name.slice(0, 200), ruta: ruta, tipo: ext, tamano: f.size });
+      if (ins.error) {
+        var ex = await cliente.from('archivos_usuario').select('id').eq('ruta', ruta).maybeSingle();
+        if (ex.error) throw new Error('registro_incierto');
+        if (!ex.data) {
+          var lim = await borrarObjeto(ruta);
+          if (lim !== 'borrado' && lim !== 'ausente') throw new Error('limpieza_pendiente');
+          throw ins.error;
+        }
+      }
+    }
+    function gdMensajeError(err) {
+      var m = (err && err.message) || '';
+      if (/^gd_/.test(m)) return {
+        gd_auth: 'Error de autorización: Google no concedió el acceso. Inténtalo de nuevo.',
+        gd_cancel: 'Importación cancelada.',
+        gd_incompatible: 'Archivo incompatible. Usa PDF, Word, PowerPoint, JPG o PNG (Google Docs o Presentaciones).',
+        gd_grande: 'Archivo demasiado grande: el máximo es 50 MB.',
+        gd_export_grande: 'Google no permite exportar documentos nativos de más de 10 MB.',
+        gd_vacio: 'El archivo está vacío; no se importó.',
+        gd_corrupto: 'El archivo llegó incompleto o dañado; no se guardó.',
+        gd_permiso: 'No se pudo leer el archivo en Google Drive (sin permiso o no disponible).',
+        gd_red: 'Error de conexión con Google. Inténtalo de nuevo.'
+      }[m] || 'Error de conexión.';
+      if (errSesion(err)) return 'Tu sesión expiró. Inicia sesión de nuevo.';
+      if (m === 'limpieza_pendiente') return 'El archivo se subió pero no pudo registrarse y no se pudo limpiar. Inténtalo de nuevo.';
+      if (m === 'registro_incierto') return 'No se pudo confirmar el registro. Revisa tu biblioteca antes de volver a importarlo.';
+      return 'Error al guardar el archivo. Inténtalo de nuevo.';
+    }
+    new MutationObserver(function () { gdBoton.disabled = aBoton.disabled; }).observe(aBoton, { attributes: true, attributeFilter: ['disabled'] });
+    gdBoton.addEventListener('click', async function () {
+      if (gdOcupado || aOcupado) return;
+      aIr.hidden = true;
+      if (!gdConfigurado()) { msg(aEstado, 'La importación desde Google Drive está pendiente de configuración y todavía no está disponible.', 'error'); return; }
+      if (!sesionActual) { msg(aEstado, 'Necesitas iniciar sesión para importar archivos.', 'error'); return; }
+      gdOcupado = true; aOcupado = true; aBoton.disabled = true; aInput.disabled = true; aNombre.disabled = true; gdTexto.textContent = 'Importando…';
+      var token = null, ok = 0, fallos = [], ultimo = '';
+      try {
+        msg(aEstado, 'Conectando con Google…', '');
+        await gdPrepararLibrerias();
+        token = await gdPedirToken();
+        msg(aEstado, 'Seleccionando archivo…', '');
+        var docs = await gdElegir(token);
+        if (!docs || !docs.length) { msg(aEstado, 'Importación cancelada.', ''); return; }
+        for (var i = 0; i < docs.length; i++) {
+          var etiqueta = docs.length > 1 ? ' (' + (i + 1) + ' de ' + docs.length + ')' : '';
+          try {
+            msg(aEstado, 'Verificando documento' + etiqueta + '…', '');
+            var r = await gdObtener(docs[i], token);
+            msg(aEstado, 'Importando archivo' + etiqueta + '… no cierres esta pantalla.', '');
+            await gdGuardar(r.f, r.ext);
+            ok++; ultimo = r.f.name;
+          } catch (e) {
+            console.warn('estudia_drive', (e && (e.code || e.status || e.name || e.message)) || 'desconocido');
+            if (errSesion(e)) { fallos.push({ n: docs[i].nombre || 'archivo', t: gdMensajeError(e) }); break; }
+            fallos.push({ n: docs[i].nombre || 'archivo', t: gdMensajeError(e) });
+          }
+        }
+        if (ok && !fallos.length) msg(aEstado, ok === 1 ? 'Archivo importado correctamente: ' + ultimo : ok + ' archivos importados correctamente.', 'ok');
+        else if (ok) msg(aEstado, 'Se importaron ' + ok + ' de ' + docs.length + '. No se pudo importar «' + fallos[0].n + '»: ' + fallos[0].t + (fallos.length > 1 ? ' (y ' + (fallos.length - 1) + ' más)' : ''), 'error');
+        else msg(aEstado, fallos[0].t + (docs.length > 1 ? ' Archivo: «' + fallos[0].n + '».' : ''), 'error');
+        if (ok) aIr.hidden = false;
+      } catch (err) {
+        console.warn('estudia_drive', (err && (err.code || err.status || err.name || err.message)) || 'desconocido');
+        msg(aEstado, gdMensajeError(err), (err && err.message === 'gd_cancel') ? '' : 'error');
+      } finally {
+        try { if (token && window.google && google.accounts && google.accounts.oauth2) google.accounts.oauth2.revoke(token, function () {}); } catch (e) {}
+        token = null;
+        gdOcupado = false; aOcupado = false; aBoton.disabled = false; aInput.disabled = false; aNombre.disabled = false;
+        gdTexto.textContent = 'Importar desde Google Drive';
+        refrescarSeleccionSubida();
       }
     });
     async function cargarArchivos() {
