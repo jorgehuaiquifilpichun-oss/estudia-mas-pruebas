@@ -448,7 +448,7 @@
 
   /* Selector por formato de Leer y escuchar, aislado de la Biblioteca y Estudio rápido. */
   #lector-selector{max-width:480px;margin-left:auto;margin-right:auto}
-  .lector-formatos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+  .lector-formatos{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
   .lector-formato{border:2px solid #b9d1e5;border-radius:14px;background:#fff;color:#254367;min-height:62px;font:750 1rem var(--fuente);cursor:pointer;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px}
   .lector-formato small{font-size:.73rem;font-weight:500;color:#5c6b82}
   .lector-formato[aria-pressed="true"]{background:#e0f2ec;border-color:#20886c;color:#176c52}
@@ -690,6 +690,7 @@
         <button type="button" class="lector-formato" data-lector-tipo="pdf" aria-pressed="false">PDF<small>Libros</small></button>
         <button type="button" class="lector-formato" data-lector-tipo="ppt" aria-pressed="false">PPT<small>Presentaciones</small></button>
         <button type="button" class="lector-formato" data-lector-tipo="pptx" aria-pressed="false">PPTX<small>Presentaciones</small></button>
+        <button type="button" class="lector-formato" data-lector-tipo="word" aria-pressed="false">Word<small>DOC / DOCX</small></button>
       </div>
       <div id="lector-documentos" hidden>
         <label for="lector-busqueda">Buscar documento</label>
@@ -697,7 +698,7 @@
         <p id="lector-lista-vacia" aria-live="polite"></p>
         <ul id="lector-lista" class="lector-lista" aria-label="Documentos de la categoría seleccionada"></ul>
       </div>
-      <p class="rapido-nota">PDF con texto seleccionable, PPT y PPTX. Los documentos escaneados requieren reconocimiento adicional.</p>
+      <p class="rapido-nota">PDF con texto seleccionable, PPT, PPTX y Word. Los DOC antiguos pueden requerir conversión. Los documentos escaneados requieren reconocimiento adicional.</p>
       <button type="button" id="lector-abrir" class="boton b-verde" disabled hidden>Leer guía</button>
       <p id="lector-estado" class="estado-rapido" role="status" aria-live="polite"></p>
     </div>
@@ -1760,6 +1761,15 @@
     async function abrirArchivo(a, boton) {
       if (boton.disabled) return;
       boton.disabled = true;
+      var tipoWord = /\.(docx?|DOCX?)$/.test(String(a.nombre_original || '')) || ['doc', 'docx'].includes(String(a.tipo || '').toLowerCase());
+      if (tipoWord) {
+        // Word se visualiza en el lector interno, sin abrir una pestaña de descarga.
+        window.__estudiaWordPendiente = a.id;
+        boton.disabled = false;
+        if (location.hash === '#leer-escuchar') window.dispatchEvent(new Event('estudia-abrir-word'));
+        else location.hash = '#leer-escuchar';
+        return;
+      }
       var w = window.open('', '_blank');
       try {
         var r = await cliente.storage.from(BUCKET).createSignedUrl(a.ruta, 60);
@@ -2494,9 +2504,10 @@
       function normalizarTipo(a){
         var nombre=String(a.nombre_original||'').toLowerCase();
         var t=String(a.tipo||'').toLowerCase();
+        if(t==='doc'||t==='docx')return 'word';
         if(t==='pdf'||t==='ppt'||t==='pptx')return t;
-        var ext=nombre.match(/\.(pdf|pptx|ppt)$/);
-        return ext?ext[1]:'';
+        var ext=nombre.match(/\.(pdf|pptx|ppt|docx|doc)$/);
+        return ext?(ext[1]==='doc'||ext[1]==='docx'?'word':ext[1]):'';
       }
       function pintarTipos(){
         tipos.forEach(function(b){
@@ -2534,8 +2545,15 @@
           var r=await cliente.from('archivos_usuario').select('id,nombre_original,ruta,tipo,estado,tamano').eq('estado','activo').order('creado_en',{ascending:false});
           if(r.error)throw r.error;
           if(turno!==seq || location.hash!=='#leer-escuchar')return;
-          listado=(r.data||[]).filter(function(a){return ['ppt','pptx','pdf'].includes(normalizarTipo(a))});
+          listado=(r.data||[]).filter(function(a){return ['ppt','pptx','pdf','word'].includes(normalizarTipo(a))});
+          var wordPendiente = window.__estudiaWordPendiente;
+          if(wordPendiente){
+            window.__estudiaWordPendiente = null;
+            var destino = listado.find(function(a){return String(a.id)===String(wordPendiente)&&normalizarTipo(a)==='word';});
+            if(destino){tipoActual='word';seleccionado=destino.id;}
+          }
           pintarTipos();pintarLista();
+          if(wordPendiente && seleccionado && normalizarTipo(listado.find(function(a){return a.id===seleccionado;})||{})==='word') abrir.click();
           aviso(listado.length?'':'No tienes guías compatibles en tu biblioteca.');
         }catch(e){
           if(turno!==seq)return;
@@ -2555,6 +2573,17 @@
         selector.hidden=true;activo.hidden=false;
         frame.onload=function(){frame.contentWindow.postMessage({type:'ESTUDIA_LECTURA',slides:datosPaginados(datos)},'*');};
         frame.srcdoc=plantilla;
+      }
+      // Lectura de DOCX en el navegador: extrae texto, sin enviar el archivo a terceros.
+      async function leerDocx(a){
+        await cargarScript('https://cdn.jsdelivr.net/npm/mammoth@1.11.0/mammoth.browser.min.js','mammoth');
+        var obj=await cliente.storage.from('estudia-archivos').download(a.ruta);
+        if(obj.error||!obj.data)throw new Error('No se pudo descargar el documento Word.');
+        var buffer=await obj.data.arrayBuffer();
+        var salida=await window.mammoth.extractRawText({arrayBuffer:buffer});
+        var texto=String(salida.value||'').trim();
+        if(!texto)throw new Error('Este documento Word no contiene texto legible.');
+        return texto.split(/\n\s*\n/).map(function(t,i){return {title:i===0?(a.nombre_original||'Documento Word'):'',body:t.trim()};}).filter(function(t){return t.body;});
       }
       function cargarScript(src,globalName){
         return new Promise(function(resolve,reject){
@@ -2595,14 +2624,15 @@
         try{
           var temas;
           if(normalizarTipo(a)==='pdf')temas=await leerPdf(a);
+          else if(normalizarTipo(a)==='word' && /\.docx$/i.test(a.nombre_original||''))temas=await leerDocx(a);
           else{
             var r=await cliente.functions.invoke('estudio-rapido',{body:{accion:'leer_documento',archivo_id:a.id}});
             if(r.error){
-              var msg='No se pudo leer PowerPoint. Debes actualizar también la función estudio-rapido en Supabase.';
+              var msg=normalizarTipo(a)==='word'?'El formato DOC antiguo necesita conversión a DOCX o compatibilidad del servidor.':'No se pudo leer PowerPoint. Debes actualizar también la función estudio-rapido en Supabase.';
               if(r.data && r.data.error)msg=r.data.error;
               throw new Error(msg);
             }
-            if(!r.data || !Array.isArray(r.data.temas))throw new Error('El servidor no entregó texto legible.');
+            if(!r.data || !Array.isArray(r.data.temas))throw new Error(normalizarTipo(a)==='word'?'Este DOC necesita convertirse a DOCX para leerlo.':'El servidor no entregó texto legible.');
             temas=r.data.temas;
           }
           if(seq!==token || location.hash!=='#leer-escuchar')return;
@@ -2614,6 +2644,7 @@
         if(location.hash==='#leer-escuchar'){if(activo.hidden)listar();}
         else if(!activo.hidden)volver();
       });
+      window.addEventListener('estudia-abrir-word',function(){if(activo.hidden&&location.hash==='#leer-escuchar')listar();});
       if(location.hash==='#leer-escuchar')listar();
     })();
 
