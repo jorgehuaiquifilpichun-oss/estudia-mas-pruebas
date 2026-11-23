@@ -641,6 +641,7 @@
         <li><span class="act" aria-disabled="true"><span class="nom">Resumen</span><span class="pronto">Próximamente</span></span></li>
         <li><span class="act" aria-disabled="true"><span class="nom">Trípticos</span><span class="pronto">Próximamente</span></span></li>
         <li><a class="act" href="#preguntas-app"><svg aria-hidden="true"><use href="#i-chat"/></svg><span class="nom">Preguntas a la app<small>Haz preguntas y resuelve tus dudas de estudio.</small></span></a></li>
+        <li><a class="act" href="#materias"><svg aria-hidden="true"><use href="#i-libro"/></svg><span class="nom">Herramientas de estudio<small>Explora recursos interactivos de matemáticas, física, química y otras materias.</small></span></a></li>
       </ul>
     </div>
   </section>
@@ -785,6 +786,36 @@
     </section>
   </section>
 
+  <!-- ============ HERRAMIENTAS DE ESTUDIO ============ -->
+  <section class="pantalla provisional" id="materias" aria-labelledby="t-materias">
+    <a class="volver" href="#estudiar"><svg><use href="#i-atras"/></svg>Actividades</a>
+    <div class="menu-act">
+      <h2 id="t-materias" tabindex="-1">Herramientas de estudio</h2>
+      <p>Elige una materia.</p>
+      <ul>
+        <li><span class="act" aria-disabled="true"><span class="nom">Matemáticas</span><span class="pronto">Próximamente</span></span></li>
+        <li><a class="act" href="#quimica"><span class="nom">Química<small>Tabla periódica interactiva</small></span></a></li>
+        <li><span class="act" aria-disabled="true"><span class="nom">Física</span><span class="pronto">Próximamente</span></span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="quimica" aria-labelledby="t-quimica">
+    <a class="volver" href="#materias"><svg><use href="#i-atras"/></svg>Materias</a>
+    <div class="menu-act">
+      <h2 id="t-quimica" tabindex="-1">Química</h2>
+      <p>Elige una herramienta.</p>
+      <ul>
+        <li><a class="act" href="#tabla-periodica"><span class="nom">Tabla periódica interactiva<small>Explora, compara y practica los 118 elementos.</small></span></a></li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="pantalla provisional" id="tabla-periodica" aria-label="Tabla periódica interactiva">
+    <a class="volver" href="#quimica"><svg><use href="#i-atras"/></svg>Química</a>
+    <div id="tp-host"></div>
+  </section>
+
   <!-- ============ CENTRO DE AYUDA (independiente de «Preguntas a la app») ============ -->
   <section class="pantalla provisional" id="ayuda" aria-labelledby="t-ayuda">
     <header class="bib-hero mini">
@@ -877,12 +908,15 @@
 <script>
   // Navegación entre secciones mediante #hash (compatible con GitHub Pages)
   (function () {
-    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'estudio-rapido', 'leer-escuchar', 'biblioteca', 'ayuda', 'progreso', 'acceso'];
+    var secciones = ['inicio', 'subir', 'estudiar', 'preguntas-app', 'materias', 'quimica', 'tabla-periodica', 'estudio-rapido', 'leer-escuchar', 'biblioteca', 'ayuda', 'progreso', 'acceso'];
     var titulos = {
       inicio: 'Estudia+',
       subir: 'Subir archivo · Estudia+',
       estudiar: 'Comenzar a estudiar · Estudia+',
       'preguntas-app': 'Preguntas a la app · Estudia+',
+      materias: 'Herramientas de estudio · Estudia+',
+      quimica: 'Química · Estudia+',
+      'tabla-periodica': 'Tabla periódica · Estudia+',
       'estudio-rapido': 'Estudio rápido · Estudia+',
       'leer-escuchar': 'Leer y escuchar · Estudia+',
       biblioteca: 'Biblioteca de libros · Estudia+',
@@ -2713,5 +2747,6 @@
   })();
 </script>
 
+<script src="materias/tabla-periodica.js"></script>
 </body>
 </html>
